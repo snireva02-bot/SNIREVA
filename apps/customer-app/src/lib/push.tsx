@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { router, type Href } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './auth';
 import { supabase } from './supabase';
+
+/** Expo Go (Android) has no remote push since SDK 53; push only works in the real app build. */
+export const PUSH_SUPPORTED = Platform.OS !== 'web' && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 
 // Show pushes while the app is open too.
 Notifications.setNotificationHandler({
@@ -44,14 +48,18 @@ export function PushRegistration() {
   const uid = session?.user.id;
 
   useEffect(() => {
-    if (!uid || Platform.OS === 'web') return;
+    if (!uid || !PUSH_SUPPORTED) return;
     let cancelled = false;
+    // Fails harmlessly until google-services.json (Firebase) is added to the build.
     registerToken()
       .then((t) => { if (t && !cancelled) supabase.rpc('set_fcm_token', { p_token: t }); })
-      .catch((e) => console.warn('push registration failed', e));
-    const tokenSub = Notifications.addPushTokenListener((t) => {
-      if (typeof t.data === 'string') supabase.rpc('set_fcm_token', { p_token: t.data });
-    });
+      .catch((e) => console.log('push not available yet:', (e as Error).message));
+    let tokenSub: { remove: () => void } = { remove: () => {} };
+    try {
+      tokenSub = Notifications.addPushTokenListener((t) => {
+        if (typeof t.data === 'string') supabase.rpc('set_fcm_token', { p_token: t.data });
+      });
+    } catch { /* push unavailable */ }
     const receivedSub = Notifications.addNotificationReceivedListener(() => {
       qc.invalidateQueries({ queryKey: ['notifications'] });
       qc.invalidateQueries({ queryKey: ['rental'] });
