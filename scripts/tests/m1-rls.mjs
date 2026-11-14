@@ -13,8 +13,9 @@ check('customer cannot read another customer', other?.length === 0);
 const { error: roleErr } = await c1.from('profiles').update({ role: 'owner' }).eq('id', accounts.customer1.id);
 check('customer cannot promote self', !!roleErr, roleErr?.message);
 
-const { error: kycErr } = await c1.from('profiles').update({ kyc_status: 'approved' }).eq('id', accounts.customer1.id);
-check('customer cannot self-approve KYC', !!kycErr);
+const { data: cur } = await c1.from('profiles').select('kyc_status').single();
+const { error: kycErr } = await c1.from('profiles').update({ kyc_status: cur.kyc_status === 'approved' ? 'submitted' : 'approved' }).eq('id', accounts.customer1.id);
+check('customer cannot change own KYC status', !!kycErr);
 
 const { error: nameErr } = await c1.from('profiles').update({ full_name: 'Test Rider One' }).eq('id', accounts.customer1.id);
 check('customer can edit own name', !nameErr, nameErr?.message);

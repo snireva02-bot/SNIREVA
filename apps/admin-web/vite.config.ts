@@ -7,4 +7,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   server: { port: 5173 },
+  // Reports lazy-loads SheetJS + jsPDF (~250 kB gzip); main bundle ~185 kB gzip.
+  build: { chunkSizeWarningLimit: 900 },
 })

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { Pressable, Text, View } from 'react-native';
 import { router, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -60,6 +61,22 @@ function RootNavigator() {
         <Stack.Screen name="(app)" />
       </Stack.Protected>
     </Stack>
+  );
+}
+
+/** Expo Router error boundary: shown instead of a white screen if a screen crashes. */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  return (
+    <SafeAreaProvider>
+      <View style={{ flex: 1, backgroundColor: colors.canvas, padding: 24, justifyContent: 'center', gap: 12 }}>
+        <Text style={{ fontSize: 20, fontWeight: '600', color: colors.ink }}>Something went wrong</Text>
+        <Text style={{ fontSize: 16, color: colors.ink2 }}>Your data is safe. Try again, or close and reopen the app.</Text>
+        <Text style={{ fontSize: 12, color: colors.muted }}>{error.message}</Text>
+        <Pressable accessibilityRole="button" onPress={retry} style={{ marginTop: 8, height: 48, borderRadius: 8, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Try again</Text>
+        </Pressable>
+      </View>
+    </SafeAreaProvider>
   );
 }
 

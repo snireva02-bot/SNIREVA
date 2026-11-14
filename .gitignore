@@ -22,3 +22,9 @@ npm-debug.log*
 .netlify
 scripts/.screens/
 scripts/.test-accounts.json
+scripts/.expo-export/
+scripts/.vite.log
+scripts/.expo.log
+scripts/.fn.log
+scripts/.dbg.mjs
+supabase/.env.functions

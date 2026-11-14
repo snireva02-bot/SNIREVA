@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -80,7 +81,7 @@ export function Layout() {
         </div>
       </aside>
       <main id="main" className="min-w-0 flex-1 px-8 py-6">
-        <div className="mx-auto max-w-[1280px]"><Outlet /></div>
+        <div className="mx-auto max-w-[1280px]"><Suspense fallback={<div className="flex flex-col gap-4"><div className="skeleton h-8 w-64" /><div className="skeleton h-64 w-full" /></div>}><Outlet /></Suspense></div>
       </main>
     </div>
   )
