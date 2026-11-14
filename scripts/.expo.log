@@ -1,0 +1,79 @@
+env: load .env
+env: export EXPO_PUBLIC_RAZORPAY_KEY_ID EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_SUPABASE_URL
+Starting project at C:\Users\SAKETH\Downloads\workfiles\SNIREVA\apps\customer-app
+Using src/app as the root directory for Expo Router.
+React Compiler enabled
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:8095
+
+Logs for your project will appear below.
+Web Bundled 3840ms node_modules\expo-router\entry.js (3842 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web Bundled 87ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web Bundled 87ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web Bundled 82ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web  ERROR  BackHandler is not supported on web and should not be used. 
+
+Code: pay.tsx
+[0m [90m 31 |[39m   [90m// Don't let Android back interrupt a payment that is being confirmed.[39m
+ [90m 32 |[39m   useEffect(() [33m=>[39m {
+[31m[1m>[22m[39m[90m 33 |[39m     [36mconst[39m sub [33m=[39m [33mBackHandler[39m[33m.[39maddEventListener([32m'hardwareBackPress'[39m[33m,[39m () [33m=>[39m phase [33m===[39m [32m'starting'[39m [33m||[39m phase [33m===[39m [32m'confirming'[39m)[33m;[39m
+ [90m    |[39m                             [31m[1m^[22m[39m
+ [90m 34 |[39m     [36mreturn[39m () [33m=>[39m sub[33m.[39mremove()[33m;[39m
+ [90m 35 |[39m   }[33m,[39m [phase])[33m;[39m
+ [90m 36 |[39m   useEffect(() [33m=>[39m () [33m=>[39m { channel[33m.[39mcurrent [33m&&[39m supabase[33m.[39mremoveChannel(channel[33m.[39mcurrent)[33m;[39m }[33m,[39m [])[33m;[39m[0m
+Call Stack
+  useEffect$argument_0 (apps\customer-app\src\app\(app)\pay.tsx:33:29) 
+
+Code: _layout.tsx
+[0m [90m 5 |[39m
+ [90m 6 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mAppLayout[39m() {
+[31m[1m>[22m[39m[90m 7 |[39m   [36mreturn[39m [33m<[39m[33mStack[39m screenOptions[33m=[39m{{ headerShown[33m:[39m [36mfalse[39m[33m,[39m contentStyle[33m:[39m { backgroundColor[33m:[39m colors[33m.[39mcanvas }[33m,[39m animation[33m:[39m [32m'slide_from_right'[39m }} [33m/[39m[33m>[39m[33m;[39m
+ [90m   |[39m          [31m[1m^[22m[39m
+ [90m 8 |[39m }
+ [90m 9 |[39m[0m
+Call Stack
+  AppLayout (apps\customer-app\src\app\(app)\_layout.tsx:7:10)
+  RootNavigator (apps\customer-app\src\app\_layout.tsx:52:5)
+  RootLayout (apps\customer-app\src\app\_layout.tsx:76:13)
+Web Bundled 81ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md
+Web Bundled 77ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web Bundled 75ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web Bundled 73ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.

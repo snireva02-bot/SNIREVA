@@ -1,8 +1,15 @@
 import { chromium } from 'playwright';
-const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 390, height: 2000 } });
-const logs = []; p.on('console', (m) => logs.push(m.type() + ': ' + m.text().slice(0, 200)));
-await p.goto('http://localhost:8095/_sitemap'); await p.waitForTimeout(4000);
-for (const el of await p.getByText('_layout.tsx').all()) { await el.click().catch(() => {}); await p.waitForTimeout(300); }
-console.log((await p.innerText('body')).slice(0, 2000));
-console.log(logs.slice(0, 20).join('\n'));
-await b.close();
+import { readFileSync, statSync } from 'node:fs';
+const acc = JSON.parse(readFileSync('scripts/.test-accounts.json', 'utf8')).manager;
+const b = await chromium.launch(); const p = await b.newPage({ acceptDownloads: true });
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+await p.goto('http://localhost:5173/login'); await p.fill('#email', acc.email); await p.fill('#password', acc.password); await p.click('button[type=submit]');
+await p.waitForURL((u) => !u.pathname.startsWith('/login')); await p.goto('http://localhost:5173/reports'); await p.waitForLoadState('networkidle');
+for (const tab of ['Collections', 'Scooter utilisation']) {
+  await p.getByRole('tab', { name: tab }).click(); await p.waitForTimeout(1500);
+  for (const btn of ['Excel', 'PDF']) {
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: btn }).click()]);
+    const f = `scripts/.screens/${dl.suggestedFilename()}`; await dl.saveAs(f); console.log(tab, btn, dl.suggestedFilename(), statSync(f).size, 'bytes');
+  }
+}
+console.log(errs.length ? errs : 'no page errors'); await b.close();

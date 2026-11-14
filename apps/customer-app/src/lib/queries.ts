@@ -65,6 +65,7 @@ export function usePayments() {
     enabled: !!session,
     queryFn: async () =>
       must(await supabase.from('payments').select('*').neq('status', 'created')
+        .or('failure_reason.is.null,failure_reason.neq.Superseded by a newer attempt')
         .order('created_at', { ascending: false }).limit(100)),
   });
 }
@@ -78,6 +79,21 @@ export function useUnreadCount() {
     queryFn: async () => {
       const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
       return count ?? 0;
+    },
+  });
+}
+
+export interface AmountDue {
+  rent: number; late_fee: number; total: number; period_start: string | null; period_end: string | null;
+  days_late: number; weeks_due: number; outstanding: number; renewal_blocked: boolean;
+}
+export function useAmountDue(rentalId?: string | null) {
+  return useQuery({
+    queryKey: ['amount-due', rentalId],
+    enabled: !!rentalId,
+    queryFn: async () => {
+      const rows = must(await supabase.rpc('rental_amount_due', { p_rental: rentalId! })) as unknown as AmountDue[];
+      return rows[0];
     },
   });
 }

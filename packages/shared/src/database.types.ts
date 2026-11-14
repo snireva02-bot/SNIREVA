@@ -132,6 +132,7 @@ export type Database = {
           decided_by: string | null
           id: string
           pickup_location_id: string | null
+          preferred_scooter_id: string | null
           scooter_id: string | null
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
@@ -144,6 +145,7 @@ export type Database = {
           decided_by?: string | null
           id?: string
           pickup_location_id?: string | null
+          preferred_scooter_id?: string | null
           scooter_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
@@ -156,6 +158,7 @@ export type Database = {
           decided_by?: string | null
           id?: string
           pickup_location_id?: string | null
+          preferred_scooter_id?: string | null
           scooter_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
@@ -174,6 +177,13 @@ export type Database = {
             columns: ["pickup_location_id"]
             isOneToOne: false
             referencedRelation: "pickup_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_requests_preferred_scooter_id_fkey"
+            columns: ["preferred_scooter_id"]
+            isOneToOne: false
+            referencedRelation: "scooters"
             referencedColumns: ["id"]
           },
           {
@@ -866,6 +876,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allocate_scooter: {
+        Args: { p_booking: string; p_note?: string; p_scooter: string }
+        Returns: string
+      }
+      apply_current_rent: { Args: { p_rental_ids?: string[] }; Returns: number }
+      apply_gateway_payment: {
+        Args: {
+          p_amount_paise: number
+          p_order_id: string
+          p_payment_id: string
+        }
+        Returns: string
+      }
+      cancel_booking: { Args: { p_booking: string }; Returns: undefined }
+      complete_handover: {
+        Args: {
+          p_checklist: Json
+          p_collect_deposit?: boolean
+          p_collect_first_week?: boolean
+          p_method?: Database["public"]["Enums"]["payment_method"]
+          p_notes?: string
+          p_rental: string
+        }
+        Returns: undefined
+      }
+      complete_return: {
+        Args: {
+          p_checklist: Json
+          p_rental: string
+          p_scooter_status?: Database["public"]["Enums"]["scooter_status"]
+          p_settlement_note?: string
+        }
+        Returns: number
+      }
+      dashboard_overview: { Args: never; Returns: Json }
       decide_kyc: {
         Args: { p_approve: boolean; p_reason?: string; p_user: string }
         Returns: undefined
@@ -877,6 +922,11 @@ export type Database = {
       }
       is_staff: { Args: never; Returns: boolean }
       is_trusted_context: { Args: never; Returns: boolean }
+      mark_gateway_failed: {
+        Args: { p_order_id: string; p_payment_id: string; p_reason: string }
+        Returns: string
+      }
+      mark_overdue_rentals: { Args: never; Returns: number }
       notify: {
         Args: {
           p_body: string
@@ -887,21 +937,140 @@ export type Database = {
         }
         Returns: string
       }
+      prepare_rent_payment: {
+        Args: { p_rental: string }
+        Returns: {
+          amount: number
+          late_fee: number
+          payment_id: string
+          period_end: string
+          period_start: string
+        }[]
+      }
       record_consent: { Args: never; Returns: undefined }
+      record_offline_payment: {
+        Args: {
+          p_amount: number
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_notes?: string
+          p_rental: string
+          p_type: Database["public"]["Enums"]["payment_type"]
+        }
+        Returns: string
+      }
+      reject_booking: {
+        Args: { p_booking: string; p_note: string }
+        Returns: undefined
+      }
+      render_agreement: { Args: { p_rental: string }; Returns: Json }
+      rental_amount_due: {
+        Args: { p_rental: string }
+        Returns: {
+          days_late: number
+          late_fee: number
+          outstanding: number
+          period_end: string
+          period_start: string
+          renewal_blocked: boolean
+          rent: number
+          total: number
+          weeks_due: number
+        }[]
+      }
+      report_collections: {
+        Args: { p_from: string; p_group?: string; p_to: string }
+        Returns: {
+          deposit: number
+          late_fees: number
+          offline: number
+          online: number
+          payments: number
+          period: string
+          rent: number
+          total: number
+        }[]
+      }
+      report_customers: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          full_name: string
+          last_paid: string
+          outstanding: number
+          payments: number
+          phone: string
+          rental_status: Database["public"]["Enums"]["rental_status"]
+          total: number
+          user_id: string
+        }[]
+      }
+      report_outstanding: {
+        Args: never
+        Returns: {
+          days_late: number
+          full_name: string
+          late_fee: number
+          next_due_date: string
+          outstanding: number
+          phone: string
+          rental_id: string
+          scooter_code: string
+          status: Database["public"]["Enums"]["rental_status"]
+          weeks_due: number
+        }[]
+      }
+      report_utilisation: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          code: string
+          maintenance_notes: string
+          model: string
+          range_days: number
+          rentals: number
+          rented_days: number
+          revenue: number
+          scooter_id: string
+          service_requests: number
+          status: Database["public"]["Enums"]["scooter_status"]
+          utilisation: number
+        }[]
+      }
       request_account_deletion: { Args: never; Returns: undefined }
+      request_scooter: {
+        Args: { p_pickup: string; p_preferred_scooter?: string }
+        Returns: string
+      }
       require_staff: { Args: never; Returns: undefined }
       review_kyc_document: {
         Args: { p_approve: boolean; p_doc: string; p_note?: string }
         Returns: undefined
       }
+      save_agreement_template: { Args: { p_body: string }; Returns: number }
+      send_due_reminders: { Args: never; Returns: number }
       set_customer_active: {
         Args: { p_active: boolean; p_user: string }
         Returns: undefined
+      }
+      set_fcm_token: { Args: { p_token: string }; Returns: undefined }
+      set_renewal_block: {
+        Args: { p_blocked: boolean; p_reason?: string; p_rental: string }
+        Returns: undefined
+      }
+      sign_agreement: {
+        Args: { p_rental: string; p_signature_path: string }
+        Returns: string
       }
       storage_owner_folder: { Args: { object_name: string }; Returns: boolean }
       submit_kyc: {
         Args: never
         Returns: Database["public"]["Enums"]["kyc_status"]
+      }
+      terminate_rental: {
+        Args: {
+          p_reason: string
+          p_rental: string
+          p_scooter_status?: Database["public"]["Enums"]["scooter_status"]
+        }
+        Returns: undefined
       }
     }
     Enums: {
