@@ -1,0 +1,22 @@
+env: load .env
+env: export EXPO_PUBLIC_DEMO_MODE EXPO_PUBLIC_DEMO_PASSWORD EXPO_PUBLIC_RAZORPAY_KEY_ID EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_SUPABASE_URL
+Starting project at C:\Users\SAKETH\Downloads\workfiles\SNIREVA\apps\customer-app
+Using src/app as the root directory for Expo Router.
+React Compiler enabled
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:8095
+
+Logs for your project will appear below.
+Web Bundled 2452ms node_modules\expo-router\entry.js (3809 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  WARN  [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+Web  WARN  [expo-notifications] Notifications handling is not yet fully supported on web. Handling notifications will have no effect.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web  WARN  `unstable_settings.initialRouteName` is deprecated. Use `unstable_settings.anchor` instead.
+Web  WARN  [Reanimated] Selected easing is not currently supported on web. Using linear easing instead.
+Web  WARN  [Reanimated] Selected easing is not currently supported on web. Using linear easing instead.
+Web  WARN  [Reanimated] Selected easing is not currently supported on web. Using linear easing instead.
+Web  WARN  Animated: `useNativeDriver` is not supported because the native animated module is missing. Falling back to JS-based animation. To resolve this, add `RCTAnimation` module to this app, or remove `useNativeDriver`. Make sure to run `bundle exec pod install` first. Read more about autolinking: https://github.com/react-native-community/cli/blob/master/docs/autolinking.md

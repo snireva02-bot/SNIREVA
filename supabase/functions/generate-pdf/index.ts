@@ -21,8 +21,7 @@ async function agreementPdf(db: DB, id: string) {
 
   doc.text('Scooter Rental Agreement', { size: 16, bold: true, gap: 4 });
   doc.text(`Agreement for ${a.rental.scooter.code} (${a.rental.scooter.model}) - template version ${a.version}`, { color: INK2, gap: 12 });
-  doc.text((a.terms_snapshot as { body: string }).body.replace(/^\s*SCOOTER RENTAL AGREEMENT\s*
-+/i, ''), { size: 10, gap: 16 });
+  doc.text((a.terms_snapshot as { body: string }).body.replace(/^\s*SCOOTER RENTAL AGREEMENT\s*\n+/i, ''), { size: 10, gap: 16 });
 
   if (doc.y < 200) doc.newPage();
   doc.text('Signed by the Rider', { bold: true, gap: 6 });
