@@ -1,0 +1,74 @@
+@import '@fontsource-variable/inter';
+@import 'tailwindcss';
+
+/* SNIREVA design tokens (from client deck). Light theme only for v1. */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: #23915c;
+  --color-brand-hover: #1c7a4c;
+  --color-brand-press: #17643f;
+  --color-ink: #141f1d;
+  --color-ink-2: #45534e;
+  --color-muted: #66756f;
+  --color-line: #dce6e0;
+  --color-line-strong: #c5d3cb;
+  --color-canvas: #f2f7f4;
+  --color-tint: #dcf1e6;
+  --color-surface: #ffffff;
+
+  --color-ok: #1a7a4c;
+  --color-ok-bg: #dcf1e6;
+  --color-warn: #8a5300;
+  --color-warn-bg: #fcefd6;
+  --color-bad: #b42318;
+  --color-bad-bg: #fbe5e2;
+  --color-neutral: #4f5c57;
+  --color-neutral-bg: #edf1ef;
+
+  /* 3 body sizes + 2 heading sizes */
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-lg: 16px;
+  --text-lg--line-height: 24px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+
+  --radius-md: 8px;
+  --radius-sm: 6px;
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    @apply bg-canvas text-ink font-sans text-base;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  :focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+  button, [role='button'], a { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  h1, h2, h3 { @apply text-ink; }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@utility skeleton {
+  background: #e8eeeb;
+  animation: pulse-soft 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}

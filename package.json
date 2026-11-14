@@ -1,0 +1,21 @@
+{
+  "name": "snireva",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "db:push": "node scripts/db.mjs push",
+    "db:types": "node scripts/db.mjs types",
+    "admin:dev": "npm run dev -w admin-web",
+    "admin:build": "npm run build -w admin-web",
+    "app:start": "npm run start -w customer-app",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "pg": "^8.23.1",
+    "playwright": "^1.65.1"
+  }
+}

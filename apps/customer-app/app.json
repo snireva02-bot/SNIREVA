@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "SNIREVA",
+    "slug": "snireva",
+    "owner": "snirevas-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "snireva",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F2F7F4",
+    "ios": {
+      "bundleIdentifier": "com.snireva.rental",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.snireva.rental",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#050505",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ],
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-dev-client",
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#050505",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 220
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SNIREVA to use your photos to upload documents and scooter photos.",
+          "cameraPermission": "Allow SNIREVA to use the camera to photograph your documents and scooter."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#23915C",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "dc29e9b2-797a-404d-9971-3dc5afee0942"
+      }
+    }
+  }
+}
