@@ -1,24 +1,54 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "environment": "development"
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jwzxfbjvmfhoyrcmccvo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3enhmYmp2bWZob3lyY21jY3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDYxMTgsImV4cCI6MjExMDIyMjExOH0.PGmg-rqmhX_i73XL3UTtw6dc_qkPx4MMe9wlrXUwhgQ",
+        "EXPO_PUBLIC_DEMO_MODE": "true",
+        "EXPO_PUBLIC_DEMO_PASSWORD": "Snireva@Demo2026"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "environment": "preview"
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jwzxfbjvmfhoyrcmccvo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3enhmYmp2bWZob3lyY21jY3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDYxMTgsImV4cCI6MjExMDIyMjExOH0.PGmg-rqmhX_i73XL3UTtw6dc_qkPx4MMe9wlrXUwhgQ",
+        "EXPO_PUBLIC_DEMO_MODE": "true",
+        "EXPO_PUBLIC_DEMO_PASSWORD": "Snireva@Demo2026"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "android": { "buildType": "app-bundle" },
-      "environment": "production"
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jwzxfbjvmfhoyrcmccvo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3enhmYmp2bWZob3lyY21jY3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDYxMTgsImV4cCI6MjExMDIyMjExOH0.PGmg-rqmhX_i73XL3UTtw6dc_qkPx4MMe9wlrXUwhgQ",
+        "EXPO_PUBLIC_DEMO_MODE": "false"
+      }
     }
   },
   "submit": {
-    "production": { "android": { "track": "internal" } }
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
   }
 }

@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bell, FileUp, ShieldAlert, Clock } from 'lucide-react-native';
 import { KYC_STATUS } from '@snireva/shared';
-import { Button, Card, Chip, OfflineBanner, Screen, Text } from '@/components/ui';
+import { Button, Card, Chip, OfflineBanner, Screen, Skeleton, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useCurrentRental, useLastBooking, usePendingBooking, useUnreadCount } from '@/lib/queries';
 import { DueCard } from '@/components/home/DueCard';
@@ -62,7 +62,7 @@ function Primary() {
   const pending = usePendingBooking();
   const last = useLastBooking();
   if (profile?.kyc_status !== 'approved' && !rental.data) return <KycCard />;
-  if (rental.isPending || pending.isPending) return <Card style={{ gap: space.md }}><Text variant="small">{t('common.loading')}…</Text></Card>;
+  if (rental.isPending || pending.isPending) return <Card style={{ gap: space.md }}><Skeleton height={16} width={140} /><Skeleton height={40} width={180} /><Skeleton height={48} /></Card>;
   const r = rental.data;
   if (r && (r.status === 'active' || r.status === 'overdue')) return <DueCard rental={r} />;
   if (r) return <RentalSetupCard rental={r} />;

@@ -58,7 +58,8 @@
           "color": "#23915C",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      "expo-updates"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -68,6 +69,14 @@
       "eas": {
         "projectId": "dc29e9b2-797a-404d-9971-3dc5afee0942"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/dc29e9b2-797a-404d-9971-3dc5afee0942",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

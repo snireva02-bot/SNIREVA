@@ -13,6 +13,7 @@ import { openCheckout } from '@/lib/razorpay';
 import { useAuth } from '@/lib/auth';
 import { colors, space } from '@/lib/theme';
 import { t } from '@/i18n';
+import { DEMO_MODE } from '@/lib/config';
 
 type Phase = 'idle' | 'starting' | 'confirming' | 'paid' | 'failed' | 'pending';
 interface Order { order_id: string; key_id: string; amount: number; amount_paise: number; payment_id: string; prefill: { name: string; contact: string } }
@@ -77,6 +78,13 @@ export default function Pay() {
     if (!rental.data) return;
     setError(null); setPhase('starting');
     try {
+      if (DEMO_MODE) {
+        // Demo: server records the payment through the same path as the Razorpay webhook.
+        const { data: paymentId, error } = await supabase.rpc('demo_pay_rent', { p_rental: rental.data.id });
+        if (error) throw error;
+        waitForResult(paymentId as string, Number(due.data?.total ?? rental.data.weekly_rent));
+        return;
+      }
       const order = await invoke<Order>('create-payment-order', { rental_id: rental.data.id });
       const res = await openCheckout({
         keyId: order.key_id, orderId: order.order_id, amountPaise: order.amount_paise,
@@ -152,7 +160,7 @@ export default function Pay() {
             onPress={pay} loading={busy} disabled={offline || !d} />
           <View style={{ flexDirection: 'row', gap: space.xs, justifyContent: 'center', alignItems: 'center' }}>
             <ShieldCheck size={14} color={colors.muted} />
-            <Text variant="caption">Secure UPI payment by Razorpay</Text>
+            <Text variant="caption">{DEMO_MODE ? 'Demo payment – no money is charged' : 'Secure UPI payment by Razorpay'}</Text>
           </View>
         </View>
       ) : undefined}>

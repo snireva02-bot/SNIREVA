@@ -114,10 +114,49 @@ npx expo start --dev-client
 Push and Razorpay need the **development build** (not Expo Go). The web build (`npx expo start --web`)
 is useful for layout checks; signing and payments show a "works in the Android app" message there.
 
-In development builds the sign-in screen has a **Developer sign-in** link that accepts the test
-accounts from `scripts/.test-accounts.json` (hidden in production builds).
+Run the app from `apps/customer-app` (or `npm start` at the repo root). Running `npx expo start` in the repo
+root itself fails with *Unable to resolve "../../App"* because the root is not an Expo project.
 
-## 5. Tests
+## 5. Demo mode, APK and over-the-air updates
+
+**Demo data.** `npm run demo:seed` creates 8 demo riders, one per stage (new, documents under review,
+verified, request pending, agreement to sign, active, overdue, returned), plus 12 scooters, payment
+history, agreements, handovers and service requests. Re-running resets them. `node scripts/seed-demo.mjs --remove`
+deletes them. Riders sign in with `<name>@demo.snireva.in` and `DEMO_PASSWORD`.
+
+**Demo mode** has two switches:
+- App: `EXPO_PUBLIC_DEMO_MODE=true` (set in `eas.json` for the `development` and `preview` builds) shows
+  **Try the demo** on the sign-in screen and makes **Pay** use simulated payments.
+- Server: `private.app_config.demo_mode = 'on'` allows `demo_pay_rent()`, which records the payment through the
+  same code path as the Razorpay webhook (due date +7, receipt number, notifications).
+
+**Install the APK** (needs the Expo account that owns `snirevas-team`):
+
+```bash
+cd apps/customer-app
+npx eas-cli login
+npm run build:apk          # preview profile -> APK link + QR code, channel "preview"
+```
+
+**Ship updates over the air** (no reinstall). Any change to JS/TS code, screens, text or images:
+
+```bash
+cd apps/customer-app
+npm run update:preview -- --message "Fix payment screen copy"
+```
+
+The installed app downloads the update in the background on launch / when reopened and shows
+**New version ready · Tap to restart** (it also applies itself on the next cold start).
+Updates reach builds with the same `version` in `app.json` (runtime policy `appVersion`).
+
+You **must build and reinstall a new APK** only when native parts change: adding/upgrading a native
+library, Expo SDK upgrade, `app.json` permissions/plugins/icons, or `google-services.json`. When you
+do, bump `version` in `app.json` so old installs don't receive incompatible updates.
+
+**Going live:** run `node scripts/seed-demo.mjs --remove`, set `demo_mode` to `'off'`, build with the
+`production` profile and publish updates with `npm run update:prod`.
+
+## 6. Tests
 
 ```bash
 node scripts/tests/run-all.mjs       # 150 checks across M1–M9 against the real project
@@ -130,7 +169,7 @@ idempotent webhook, amount mismatch, early payment (+7 from due date), late fees
 reminders, renewal hold, rent snapshot, offline payments + audit log, service requests, reports.
 They create and change data – run them on a staging project, not production.
 
-## 6. Deploying
+## 7. Deploying
 
 **Admin dashboard** – Vercel: import the repo, root `apps/admin-web`, build `npm run build`, output
 `dist`, env vars `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. (`vercel.json` handles SPA routing;
@@ -143,7 +182,7 @@ npx eas-cli build --profile production --platform android     # AAB for Play Sto
 npx eas-cli submit --profile production --platform android    # internal testing track
 ```
 
-## 7. Business rules (where they live)
+## 8. Business rules (where they live)
 
 | Rule | Enforced in |
 |---|---|
@@ -165,14 +204,14 @@ npx eas-cli submit --profile production --platform android    # internal testing
 **Deposit and first week** are collected at handover (cash / offline UPI / bank) – tick boxes on the
 handover form. Weekly UPI payments start from the second week.
 
-## 8. Open items for the client
+## 9. Open items for the client
 
 - Confirm **deposit, late fee, grace days, support numbers, company address/GSTIN** (seeded with placeholders; edit in Settings).
 - **Agreement text must be reviewed by a lawyer** (Settings → Agreement template; saving creates a new version).
 - Razorpay KYC → live keys. DLT registration for SMS. Play Console account.
 - Logo: the supplied PNG has a black background, so it is shown on a dark tile. An SVG/transparent PNG would look sharper.
 
-## 9. Recurring costs (approximate, check current pricing)
+## 10. Recurring costs (approximate, check current pricing)
 
 | Item | Cost |
 |---|---|

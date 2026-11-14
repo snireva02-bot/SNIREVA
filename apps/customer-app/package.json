@@ -31,6 +31,7 @@
     "expo-status-bar": "~58.0.5",
     "expo-symbols": "~58.0.5",
     "expo-system-ui": "~58.0.7",
+    "expo-updates": "~58.0.22",
     "expo-web-browser": "~58.0.8",
     "lucide-react-native": "^1.73.0",
     "react": "19.3.0",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "cross-env": "^10.1.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -59,7 +61,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:apk": "npx eas-cli@latest build --platform android --profile preview",
+    "build:dev": "npx eas-cli@latest build --platform android --profile development",
+    "build:prod": "npx eas-cli@latest build --platform android --profile production",
+    "update:preview": "npx eas-cli@latest update --channel preview --platform android",
+    "update:prod": "cross-env EXPO_PUBLIC_DEMO_MODE=false npx eas-cli@latest update --channel production --platform android"
   },
   "private": true
 }

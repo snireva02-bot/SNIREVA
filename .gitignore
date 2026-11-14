@@ -28,3 +28,4 @@ scripts/.expo.log
 scripts/.fn.log
 scripts/.dbg.mjs
 supabase/.env.functions
+scripts/.demo-accounts.json

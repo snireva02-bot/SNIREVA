@@ -915,11 +915,14 @@ export type Database = {
         Args: { p_approve: boolean; p_reason?: string; p_user: string }
         Returns: undefined
       }
+      demo_pay_rent: { Args: { p_rental: string }; Returns: string }
       enter_trusted: { Args: never; Returns: undefined }
+      format_phone_in: { Args: { p: string }; Returns: string }
       has_role: {
         Args: { roles: Database["public"]["Enums"]["user_role"][] }
         Returns: boolean
       }
+      is_demo_mode: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_trusted_context: { Args: never; Returns: boolean }
       mark_gateway_failed: {

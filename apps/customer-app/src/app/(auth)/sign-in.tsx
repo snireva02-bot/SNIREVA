@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { lockedFor } from '@/lib/otp';
 import { colors, space } from '@/lib/theme';
 import { t } from '@/i18n';
+import { DEMO_MODE } from '@/lib/config';
 
 export default function Login() {
   const [phone, setPhone] = useState('');
@@ -57,7 +58,7 @@ export default function Login() {
           <View style={{ flex: 1 }} />
           <View style={{ gap: space.sm }}>
             <Button title={t('auth.sendCode')} onPress={send} loading={busy} disabled={phone.length !== 10} />
-            {__DEV__ ? <Button title="Developer sign-in (test accounts)" variant="ghost" onPress={() => router.push('/dev-login')} /> : null}
+            {DEMO_MODE || __DEV__ ? <Button title="Try the demo" variant="secondary" onPress={() => router.push('/dev-login')} /> : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

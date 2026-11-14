@@ -12,6 +12,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { AuthProvider, isProfileComplete, useAuth } from '@/lib/auth';
 import { PushRegistration } from '@/lib/push';
+import { UpdateBanner } from '@/lib/updates';
 import { colors } from '@/lib/theme';
 import '@/lib/network';
 
@@ -91,6 +92,7 @@ export default function RootLayout() {
             <StatusBar style="dark" />
             <PushRegistration />
             <RootNavigator />
+            <UpdateBanner />
           </AuthProvider>
         </PersistQueryClientProvider>
       </SafeAreaProvider>

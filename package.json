@@ -11,7 +11,12 @@
     "admin:dev": "npm run dev -w admin-web",
     "admin:build": "npm run build -w admin-web",
     "app:start": "npm run start -w customer-app",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "start": "npm run start -w customer-app",
+    "android": "npm run android -w customer-app",
+    "app:web": "npm run web -w customer-app",
+    "demo:seed": "node scripts/seed-demo.mjs",
+    "test": "node scripts/tests/run-all.mjs"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.119.0",
