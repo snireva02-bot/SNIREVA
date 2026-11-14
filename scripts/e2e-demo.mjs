@@ -12,7 +12,7 @@ async function rider(name) {
   p.on('pageerror', (e) => console.log('   page error:', e.message));
   await p.goto(APP); await p.getByText('Try the demo').click();
   await p.getByText(name, { exact: true }).click();
-  await p.getByText(/^Hi, /).waitFor({ timeout: 20000 });
+  await p.getByText(/^Good (morning|afternoon|evening)/).waitFor({ timeout: 20000 });
   return p;
 }
 const shot = (p, n) => p.screenshot({ path: `${out}/e2e-${n}.png` });

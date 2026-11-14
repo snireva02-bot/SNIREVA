@@ -8,6 +8,7 @@ import { useCurrentRental, usePayments } from '@/lib/queries';
 import { useOffline } from '@/lib/network';
 import { openPdf } from '@/lib/files';
 import { colors, space } from '@/lib/theme';
+import { Appear } from '@/components/motion';
 import { t } from '@/i18n';
 
 export default function PaymentsTab() {
@@ -34,8 +35,8 @@ export default function PaymentsTab() {
           refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => { q.refetch(); }} tintColor={colors.brand} />}
           ListHeaderComponent={<OfflineBanner offline={offline} text={t('common.offline')} />}
           ListEmptyComponent={<EmptyState icon={Receipt} title="No payments yet" body="Your rent payments and receipts will appear here." />}
-          renderItem={({ item: p }) => (
-            <Card onPress={p.status === 'paid' ? () => receipt(p.receipt_path, p.receipt_no) : undefined}
+          renderItem={({ item: p, index }) => (
+            <Appear index={index}><Card onPress={p.status === 'paid' ? () => receipt(p.receipt_path, p.receipt_no) : undefined}
               style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text variant="bodyMedium">{PAYMENT_TYPE_LABEL[p.type]}{p.period_start ? ` · ${formatDate(p.period_start)}–${formatDate(p.period_end)}` : ''}</Text>
@@ -51,7 +52,7 @@ export default function PaymentsTab() {
                   </View>
                 ) : null}
               </View>
-            </Card>
+            </Card></Appear>
           )}
         />
       )}

@@ -4,6 +4,7 @@ import { daysUntil, formatDate, formatINR } from '@snireva/shared';
 import { Button, Card, Chip, Skeleton, Text } from '@/components/ui';
 import { useAmountDue, type useCurrentRental } from '@/lib/queries';
 import { colors, space } from '@/lib/theme';
+import { ProgressBar } from '@/components/motion';
 
 type Rental = NonNullable<ReturnType<typeof useCurrentRental>['data']>;
 
@@ -20,6 +21,12 @@ export function DueCard({ rental }: { rental: Rental }) {
         {late ? <Chip tone="red" label={`${-d} days late`} /> : d <= 2 ? <Chip tone="amber" label={d === 0 ? 'Today' : `In ${d} days`} /> : <Chip tone="green" label="On track" />}
       </View>
       {due.isPending ? <Skeleton height={40} width={160} /> : <Text variant="display" color={late ? colors.bad : colors.ink}>{formatINR(due.data?.total ?? rental.weekly_rent)}</Text>}
+      {!late ? (
+        <View style={{ gap: space.xs }}>
+          <ProgressBar value={d > 7 ? 0 : (7 - d) / 7} color={d <= 2 ? colors.warn : colors.brand} />
+          <Text variant="caption">{d > 7 ? `Paid ${d - 7} day${d - 7 === 1 ? '' : 's'} ahead` : d === 0 ? 'Last day of this week' : `${7 - d} of 7 days used this week`}</Text>
+        </View>
+      ) : null}
       {(due.data?.late_fee ?? 0) > 0 ? <Text variant="small">Includes {formatINR(due.data?.late_fee)} late fee</Text>
         : <Text variant="small">{rental.scooter?.code} · {rental.scooter?.model}</Text>}
       <Button title={`Pay ${formatINR(due.data?.total ?? rental.weekly_rent)}`} onPress={() => router.push('/pay')} disabled={!!rental.renewal_blocked} />

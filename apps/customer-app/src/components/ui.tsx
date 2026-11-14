@@ -8,6 +8,8 @@ import { router } from 'expo-router';
 import { ArrowLeft, Check, ChevronRight, WifiOff, X, type LucideIcon } from 'lucide-react-native';
 import type { StatusMeta, Tone } from '@snireva/shared';
 import { colors, isWeb, radius, space, touch, type } from '@/lib/theme';
+import Reanimated from 'react-native-reanimated';
+import { usePressScale } from './motion';
 
 /* ------------------------------------------------------------------ Text */
 type Variant = keyof typeof type;
@@ -27,7 +29,9 @@ interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> {
 }
 export function Button({ title, variant = 'primary', loading, icon: Icon, disabled, style, compact, ...rest }: ButtonProps) {
   const fg = variant === 'primary' ? '#FFFFFF' : variant === 'danger' ? colors.bad : colors.ink;
+  const press = usePressScale(0.97);
   return (
+    <Reanimated.View style={[press.style, style]}>
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
@@ -40,13 +44,15 @@ export function Button({ title, variant = 'primary', loading, icon: Icon, disabl
         variant === 'ghost' && { backgroundColor: pressed ? colors.canvas : 'transparent', borderColor: 'transparent' },
         variant === 'danger' && { backgroundColor: pressed ? colors.badBg : colors.surface, borderColor: colors.lineStrong },
         (disabled || loading) && { opacity: 0.5 },
-        style,
       ]}
       {...rest}
+      onPressIn={(e) => { press.onPressIn(); rest.onPressIn?.(e); }}
+      onPressOut={(e) => { press.onPressOut(); rest.onPressOut?.(e); }}
     >
       {loading ? <ActivityIndicator color={fg} size="small" /> : Icon ? <Icon size={20} color={fg} strokeWidth={1.75} /> : null}
       <Text variant="bodyMedium" color={fg}>{title}</Text>
     </Pressable>
+    </Reanimated.View>
   );
 }
 
@@ -77,11 +83,15 @@ export const Input = forwardRef<ComponentRef<typeof TextInput>, InputProps>(func
 
 /* ------------------------------------------------------------------ Card / rows */
 export function Card({ children, style, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
+  const press = usePressScale(0.985);
   if (onPress) {
     return (
-      <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [s.card, pressed && { backgroundColor: colors.canvas }, style]}>
-        {children}
-      </Pressable>
+      <Reanimated.View style={[press.style, StyleSheet.flatten(style)?.flex ? { flexGrow: 1, flexShrink: 1, flexBasis: 0 } : null]}>
+        <Pressable accessibilityRole="button" onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}
+          style={({ pressed }) => [s.card, pressed && { backgroundColor: colors.canvas }, style]}>
+          {children}
+        </Pressable>
+      </Reanimated.View>
     );
   }
   return <View style={[s.card, style]}>{children}</View>;

@@ -1,4 +1,4 @@
-import { Pressable, RefreshControl, View } from 'react-native';
+import { Image, Pressable, RefreshControl, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bell, FileUp, ShieldAlert, Clock } from 'lucide-react-native';
@@ -8,21 +8,40 @@ import { useAuth } from '@/lib/auth';
 import { useCurrentRental, useLastBooking, usePendingBooking, useUnreadCount } from '@/lib/queries';
 import { DueCard } from '@/components/home/DueCard';
 import { GetScooterCard, PendingBookingCard, RentalSetupCard } from '@/components/home/StatusCards';
-import { Card as Tile, ListItem } from '@/components/ui';
-import { LifeBuoy, Wrench } from 'lucide-react-native';
+import { LifeBuoy, Wrench, type LucideIcon } from 'lucide-react-native';
+import { Appear } from '@/components/motion';
 import { useOffline } from '@/lib/network';
 import { colors, space, touch } from '@/lib/theme';
 import { t } from '@/i18n';
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+}
+
+function QuickTile({ icon: Icon, title, sub, onPress }: { icon: LucideIcon; title: string; sub: string; onPress: () => void }) {
+  return (
+    <Card onPress={onPress} style={{ flex: 1, gap: space.sm, minHeight: 112 }}>
+      <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={20} color={colors.brandPress} strokeWidth={1.75} />
+      </View>
+      <Text variant="bodyMedium">{title}</Text>
+      <Text variant="caption">{sub}</Text>
+    </Card>
+  );
+}
 
 function Greeting() {
   const { profile } = useAuth();
   const unread = useUnreadCount();
   const first = profile?.full_name?.split(' ')[0] ?? '';
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: space.sm }}>
-      <View>
-        <Text variant="caption">SNIREVA</Text>
-        <Text variant="title">Hi, {first}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingTop: space.sm }}>
+      <Image source={require('../../../../assets/images/icon.png')} accessibilityLabel="SNIREVA"
+        style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: colors.logoBg }} />
+      <View style={{ flex: 1 }}>
+        <Text variant="caption">{greeting()}</Text>
+        <Text variant="title" numberOfLines={1}>{first || 'Welcome'}</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={`Notifications${unread.data ? `, ${unread.data} unread` : ''}`}
         onPress={() => router.push('/notifications')} hitSlop={4}
@@ -77,13 +96,13 @@ export default function Home() {
   return (
     <Screen noHeader tabScreen refreshControl={<RefreshControl refreshing={false} tintColor={colors.brand}
       onRefresh={() => { refreshProfile(); qc.invalidateQueries({ queryKey: ['rental'] }); qc.invalidateQueries({ queryKey: ['booking'] }); qc.invalidateQueries({ queryKey: ['amount-due'] }); }} />}>
-      <Greeting />
+      <Appear index={0}><Greeting /></Appear>
       <OfflineBanner offline={offline} text={t('common.offline')} />
-      <Primary />
-      <Tile style={{ padding: 0 }}>
-        <ListItem icon={Wrench} title="Report a problem" subtitle="Battery, charging, brakes, tyres" onPress={() => router.push('/service/new')} />
-        <ListItem icon={LifeBuoy} title="Call or WhatsApp support" onPress={() => router.push('/support')} last />
-      </Tile>
+      <Appear index={1}><Primary /></Appear>
+      <Appear index={2} style={{ flexDirection: 'row', gap: space.md }}>
+        <QuickTile icon={Wrench} title="Report a problem" sub="Battery, brakes, tyres" onPress={() => router.push('/service/new')} />
+        <QuickTile icon={LifeBuoy} title="Support" sub="Call or WhatsApp" onPress={() => router.push('/support')} />
+      </Appear>
     </Screen>
   );
 }

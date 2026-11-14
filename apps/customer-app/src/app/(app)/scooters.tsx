@@ -11,6 +11,7 @@ import { useCurrentRental, usePendingBooking, useSettings } from '@/lib/queries'
 import { useOffline } from '@/lib/network';
 import { must, supabase } from '@/lib/supabase';
 import { colors, space } from '@/lib/theme';
+import { Appear } from '@/components/motion';
 import { t } from '@/i18n';
 
 export default function Scooters() {
@@ -75,10 +76,10 @@ export default function Scooters() {
       <SectionTitle>{`Available now${scooters.data ? ` · ${scooters.data.length}` : ''}`}</SectionTitle>
       {scooters.isPending ? [0, 1, 2].map((i) => <Skeleton key={i} height={104} />)
         : !scooters.data?.length ? <EmptyState icon={Bike} title="No scooters available" body="All scooters are rented right now. Pull down to refresh, or check back tomorrow." />
-        : scooters.data.map((s) => {
+        : scooters.data.map((s, index) => {
           const selected = chosen === s.id;
           return (
-            <Card key={s.id} onPress={blocked ? undefined : () => setChosen(selected ? null : s.id)}
+            <Appear key={s.id} index={index}><Card onPress={blocked ? undefined : () => setChosen(selected ? null : s.id)}
               style={selected ? { borderColor: colors.brand, borderWidth: 2, padding: space.lg - 1 } : undefined}>
               <ScooterSummary scooter={s} rent={Number(s.weekly_rent ?? settings.data?.weekly_rent ?? 1820)} />
               {selected ? (
@@ -87,7 +88,7 @@ export default function Scooters() {
                   <Text variant="smallMedium" color={colors.brand}>Preferred. Final scooter is confirmed by our team.</Text>
                 </View>
               ) : null}
-            </Card>
+            </Card></Appear>
           );
         })}
       {!blocked && hubs.data?.length ? (

@@ -6,6 +6,7 @@ import { formatDate, SERVICE_CATEGORY_LABEL, SERVICE_STATUS } from '@snireva/sha
 import { Button, Card, Chip, EmptyState, Screen, Skeleton, Text } from '@/components/ui';
 import { must, supabase } from '@/lib/supabase';
 import { colors, space } from '@/lib/theme';
+import { Appear } from '@/components/motion';
 
 export default function ServiceList() {
   const q = useQuery({
@@ -20,15 +21,15 @@ export default function ServiceList() {
           contentContainerStyle={{ padding: space.lg, gap: space.sm, flexGrow: 1 }}
           refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => { q.refetch(); }} tintColor={colors.brand} />}
           ListEmptyComponent={<EmptyState icon={Wrench} title="No requests yet" body="If something is wrong with your scooter, report it here and track the fix." />}
-          renderItem={({ item: s }) => (
-            <Card onPress={() => router.push(`/service/${s.id}`)} style={{ gap: space.xs }}>
+          renderItem={({ item: s, index }) => (
+            <Appear index={index}><Card onPress={() => router.push(`/service/${s.id}`)} style={{ gap: space.xs }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text variant="bodyMedium">{SERVICE_CATEGORY_LABEL[s.category]}</Text>
                 <Chip meta={SERVICE_STATUS[s.status]} />
               </View>
               <Text variant="small" numberOfLines={2}>{s.description}</Text>
               <Text variant="caption">{formatDate(s.created_at, true)}</Text>
-            </Card>
+            </Card></Appear>
           )} />
       )}
     </Screen>

@@ -3,7 +3,8 @@ import { BackHandler, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
-import { AlertCircle, CheckCircle2, Clock, KeyRound, ShieldCheck } from 'lucide-react-native';
+import { AlertCircle, Clock, KeyRound, ShieldCheck } from 'lucide-react-native';
+import { Appear, FadeInView, SuccessMark } from '@/components/motion';
 import { formatDate, formatINR } from '@snireva/shared';
 import { Banner, Button, Card, EmptyState, OfflineBanner, Row, Screen, Skeleton, Text } from '@/components/ui';
 import { useAmountDue, useCurrentRental } from '@/lib/queries';
@@ -111,20 +112,20 @@ export default function Pay() {
         <Button title="View receipt" variant="ghost" onPress={() => router.replace('/payments')} />
       </>}>
         <View style={{ alignItems: 'center', gap: space.lg, paddingTop: space.xxxl }}>
-          <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' }}>
-            <CheckCircle2 size={48} color={colors.brand} strokeWidth={1.75} />
-          </View>
-          <Text variant="title">Payment received</Text>
-          <Text variant="display">{formatINR(result.amount)}</Text>
-          <Text variant="body" color={colors.ink2} style={{ textAlign: 'center' }}>
-            Your rental is renewed.{result.next ? ` Next rent due ${formatDate(result.next)}.` : ''}
-          </Text>
+          <SuccessMark />
+          <FadeInView delay={250} style={{ alignItems: 'center', gap: space.sm }}>
+            <Text variant="title">Payment received</Text>
+            <Text variant="display">{formatINR(result.amount)}</Text>
+            <Text variant="body" color={colors.ink2} style={{ textAlign: 'center' }}>
+              Your rental is renewed.{result.next ? ` Next rent due ${formatDate(result.next)}.` : ''}
+            </Text>
+          </FadeInView>
         </View>
-        <Card style={{ marginTop: space.xl, paddingVertical: space.sm }}>
+        <Appear index={6}><Card style={{ marginTop: space.xl, paddingVertical: space.sm }}>
           <Row label="Receipt" value={result.receipt ?? 'Being prepared'} />
           <Row label="Scooter" value={r.scooter?.code ?? ''} />
           <Row label="Next due" value={formatDate(result.next, true)} last />
-        </Card>
+        </Card></Appear>
       </Screen>
     );
   }
@@ -167,11 +168,11 @@ export default function Pay() {
       <OfflineBanner offline={offline} text="You're offline. Connect to pay." />
       {blocked ? <Banner tone="red" title="Renewal on hold" body={r.renewal_block_reason ?? 'Contact support to continue your rental.'}
         action={<Button title="Contact support" variant="secondary" compact onPress={() => router.push('/support')} />} /> : null}
-      <Card style={{ gap: space.xs }}>
+      <Appear index={0}><Card style={{ gap: space.xs }}>
         <Text variant="small">{(d?.days_late ?? 0) > 0 ? 'Overdue amount' : 'Amount due'}</Text>
         {due.isPending ? <Skeleton height={40} width={160} /> : <Text variant="display" color={(d?.days_late ?? 0) > 0 ? colors.bad : colors.ink}>{formatINR(d?.total ?? 0)}</Text>}
         <Text variant="small">For {formatDate(d?.period_start)} – {formatDate(d?.period_end, true)}</Text>
-      </Card>
+      </Card></Appear>
       <Card style={{ paddingVertical: space.sm }}>
         <Row label="Weekly rent" value={formatINR(d?.rent ?? r.weekly_rent)} />
         {(d?.late_fee ?? 0) > 0 ? <Row label={`Late fee (${d?.days_late} days)`} value={formatINR(d?.late_fee)} valueStyle={{ color: colors.bad }} /> : null}

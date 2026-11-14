@@ -75,7 +75,7 @@ export class FcmProvider implements NotifyProvider {
     });
     if (res.ok) return { ok: true };
     const text = await res.text();
-    return { ok: false, error: `FCM ${res.status}: ${text.slice(0, 300)}`, invalidToken: res.status === 404 || text.includes('UNREGISTERED') };
+    return { ok: false, error: `FCM ${res.status}: ${text.slice(0, 300)}`, invalidToken: res.status === 404 || text.includes('UNREGISTERED') || text.includes('not a valid FCM registration token') };
   }
 }
 

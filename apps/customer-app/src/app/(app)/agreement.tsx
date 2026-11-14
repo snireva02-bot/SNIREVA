@@ -8,6 +8,7 @@ import { Banner, Button, Card, EmptyState, Screen, Skeleton, Text } from '@/comp
 import { Checkbox } from '@/components/Checkbox';
 import { SignaturePad, type SignaturePadHandle } from '@/components/SignaturePad';
 import { useCurrentRental } from '@/lib/queries';
+import { SuccessMark } from '@/components/motion';
 import { must, supabase } from '@/lib/supabase';
 import { dataUrlToBytes, openPdf } from '@/lib/files';
 import { useAuth } from '@/lib/auth';
@@ -63,7 +64,7 @@ export default function Agreement() {
     return (
       <Screen title="Rental agreement" back={false} footer={<Button title="Back to home" onPress={() => router.replace('/')} />}>
         <Card style={{ alignItems: 'center', gap: space.md, paddingVertical: space.xxl }}>
-          <CheckCircle2 size={48} color={colors.brand} strokeWidth={1.75} />
+          <SuccessMark size={72} />
           <Text variant="title">Agreement signed</Text>
           <Text variant="body" color={colors.ink2} style={{ textAlign: 'center' }}>
             Next, collect your scooter at {r.pickup?.name ?? 'the hub'}. Our staff will check it with you.
