@@ -65,8 +65,8 @@
     "build:apk": "npx eas-cli@latest build --platform android --profile preview",
     "build:dev": "npx eas-cli@latest build --platform android --profile development",
     "build:prod": "npx eas-cli@latest build --platform android --profile production",
-    "update:preview": "npx eas-cli@latest update --channel preview --platform android",
-    "update:prod": "cross-env EXPO_PUBLIC_DEMO_MODE=false npx eas-cli@latest update --channel production --platform android"
+    "update:preview": "npx eas-cli@latest update --channel preview --environment preview --platform android",
+    "update:prod": "cross-env EXPO_PUBLIC_DEMO_MODE=false npx eas-cli@latest update --channel production --environment production --platform android"
   },
   "private": true
 }
