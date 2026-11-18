@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { supabase, must } from './supabase';
 import { useAuth } from './auth';
 
@@ -23,17 +23,47 @@ export function useDocuments() {
 
 const RENTAL_SELECT = '*, scooter:scooters(*), pickup:pickup_locations(name, address), agreement:agreements(id, signed_at, pdf_path)';
 
-/** Current open rental (not returned/terminated), if any. */
-export function useCurrentRental() {
+/** All of the rider's open rentals (a rider can hold several scooters). */
+export function useOpenRentals() {
   const { session } = useAuth();
   return useQuery({
-    queryKey: ['rental', 'current', session?.user.id],
+    queryKey: ['rental', 'open', session?.user.id],
     enabled: !!session,
     queryFn: async () =>
       must(await supabase.from('rentals').select(RENTAL_SELECT)
         .not('status', 'in', '(returned,terminated)')
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()),
+        .order('created_at', { ascending: true })) ?? [],
   });
+}
+export type OpenRental = NonNullable<ReturnType<typeof useOpenRentals>['data']>[number];
+
+export function useRental(id?: string | null) {
+  return useQuery({
+    queryKey: ['rental', 'one', id],
+    enabled: !!id,
+    queryFn: async () => must(await supabase.from('rentals').select(RENTAL_SELECT).eq('id', id!).single()),
+  });
+}
+
+export const isLive = (r: { status: string }) => r.status === 'active' || r.status === 'overdue';
+
+/** Amount due for each live rental + combined totals (one payment can cover all of them). */
+export function useDueSummary(rentals: OpenRental[] | undefined) {
+  const live = (rentals ?? []).filter(isLive);
+  const results = useQueries({
+    queries: live.map((r) => ({
+      queryKey: ['amount-due', r.id],
+      queryFn: async () => (must(await supabase.rpc('rental_amount_due', { p_rental: r.id })) as unknown as AmountDue[])[0],
+    })),
+  });
+  const items = live.map((r, i) => ({ rental: r, due: results[i]?.data }));
+  const loading = results.some((q) => q.isPending);
+  const total = items.reduce((a, x) => a + Number(x.due?.total ?? 0), 0);
+  const lateFee = items.reduce((a, x) => a + Number(x.due?.late_fee ?? 0), 0);
+  const earliest = live.map((r) => r.next_due_date).filter(Boolean).sort()[0] ?? null;
+  const overdue = live.some((r) => r.status === 'overdue');
+  const blocked = live.filter((r) => r.renewal_blocked);
+  return { items, loading, total, lateFee, earliest, overdue, blocked, refetch: () => results.forEach((q) => q.refetch()) };
 }
 
 export function usePendingBooking() {
@@ -64,7 +94,7 @@ export function usePayments() {
     queryKey: ['payments', session?.user.id],
     enabled: !!session,
     queryFn: async () =>
-      must(await supabase.from('payments').select('*').neq('status', 'created')
+      must(await supabase.from('payments').select('*, rental:rentals(scooter:scooters(code))').neq('status', 'created')
         .or('failure_reason.is.null,failure_reason.neq.Superseded by a newer attempt')
         .order('created_at', { ascending: false }).limit(100)),
   });

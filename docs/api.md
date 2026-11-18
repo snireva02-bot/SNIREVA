@@ -71,3 +71,32 @@ RLS decides what each user sees. State changes that involve business rules go th
 Any RPC calls `notify()` → row in `notifications` (in-app inbox) → trigger → `pg_net` →
 `send-push` → FCM HTTP v1. Channels: `default`, `payments`. `data.route` deep-links the tap.
 SMS/WhatsApp: add a provider in `supabase/functions/_shared/notify.ts` (interface already in place).
+
+## Bulk orders, combined payments, service handling (Nov 2026)
+
+**Bulk bookings.** `request_scooter(p_pickup, p_quantity, p_preferred uuid[])` – one request for N scooters
+(capped by `settings.max_scooters_per_customer`, blocked while any rental is overdue).
+`allocate_scooters(p_booking, p_scooters uuid[], p_note)` – staff allocate up to `quantity` scooters at once;
+each scooter gets its own rental (`rentals.booking_request_id` links them). Partial allocation is allowed and
+noted. `sign_agreements(p_rentals uuid[], p_signature_path)` signs every pending agreement with one signature.
+
+**Combined payments.** `prepare_rent_payment(p_rentals uuid[])` → `{ order_id, total, items[] }` creates one
+`payment_orders` row plus one `payments` row per scooter. `payment_orders` holds the unique Razorpay order and
+payment ids (webhook idempotency). `create-payment-order` accepts `{ rental_ids: [...] }`. The webhook marks the
+order and every child payment paid, advances each rental +7 days, issues one receipt per scooter and sends one
+notification. Apps watch `payment_orders` over Realtime.
+
+**Service requests are tied to a scooter.** Inserting a non-complaint request requires `rental_id`; a trigger
+copies the rental's current `scooter_id` onto the request (kept even if the scooter is later swapped).
+Timeline: `service_updates` (rider message, staff updates, status changes; `visible_to_customer=false` = internal).
+
+| RPC | Who | Does |
+|---|---|---|
+| `service_update(p_request, p_status?, p_assigned_to?, p_note?, p_visible?, p_unassign?)` | staff | assign / change status / post update (visible updates notify the rider) |
+| `service_reply(p_request, p_body)` | rider | reply on own open request |
+| `service_confirm(p_request, p_fixed, p_note?)` | rider | after "resolved": fixed → closed, not fixed → back to in progress (`reopened_count`+1) |
+| `replace_scooter(p_rental, p_new_scooter, p_reason, p_service_request?)` | staff | swap scooter on an open rental; old → maintenance with log entry; `rental_scooter_changes` row; rider notified |
+| `add_maintenance_note(p_scooter, p_note)` | staff | dated entry in the scooter's maintenance log |
+
+**Realtime.** Both apps subscribe once (`LiveSync`) to their visible tables and refresh screens on any change;
+the dashboard also toasts new requests, new problems, rider replies and UPI payments.

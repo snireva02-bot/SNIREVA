@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.18"
+  }
   public: {
     Tables: {
       agreement_templates: {
@@ -132,8 +137,8 @@ export type Database = {
           decided_by: string | null
           id: string
           pickup_location_id: string | null
-          preferred_scooter_id: string | null
-          scooter_id: string | null
+          preferred_scooter_ids: string[]
+          quantity: number
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
           user_id: string
@@ -145,8 +150,8 @@ export type Database = {
           decided_by?: string | null
           id?: string
           pickup_location_id?: string | null
-          preferred_scooter_id?: string | null
-          scooter_id?: string | null
+          preferred_scooter_ids?: string[]
+          quantity?: number
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
           user_id: string
@@ -158,8 +163,8 @@ export type Database = {
           decided_by?: string | null
           id?: string
           pickup_location_id?: string | null
-          preferred_scooter_id?: string | null
-          scooter_id?: string | null
+          preferred_scooter_ids?: string[]
+          quantity?: number
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
           user_id?: string
@@ -177,20 +182,6 @@ export type Database = {
             columns: ["pickup_location_id"]
             isOneToOne: false
             referencedRelation: "pickup_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "booking_requests_preferred_scooter_id_fkey"
-            columns: ["preferred_scooter_id"]
-            isOneToOne: false
-            referencedRelation: "scooters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "booking_requests_scooter_id_fkey"
-            columns: ["scooter_id"]
-            isOneToOne: false
-            referencedRelation: "scooters"
             referencedColumns: ["id"]
           },
           {
@@ -393,6 +384,53 @@ export type Database = {
           },
         ]
       }
+      payment_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          paid_at: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -403,6 +441,7 @@ export type Database = {
           late_fee_amount: number
           method: Database["public"]["Enums"]["payment_method"]
           notes: string | null
+          order_id: string | null
           paid_at: string | null
           period_end: string | null
           period_start: string | null
@@ -426,6 +465,7 @@ export type Database = {
           late_fee_amount?: number
           method: Database["public"]["Enums"]["payment_method"]
           notes?: string | null
+          order_id?: string | null
           paid_at?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -449,6 +489,7 @@ export type Database = {
           late_fee_amount?: number
           method?: Database["public"]["Enums"]["payment_method"]
           notes?: string | null
+          order_id?: string | null
           paid_at?: string | null
           period_end?: string | null
           period_start?: string | null
@@ -469,6 +510,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "payment_orders"
             referencedColumns: ["id"]
           },
           {
@@ -600,6 +648,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rental_scooter_changes: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_scooter_id: string
+          id: string
+          reason: string
+          rental_id: string
+          service_request_id: string | null
+          to_scooter_id: string
+          updated_at: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_scooter_id: string
+          id?: string
+          reason: string
+          rental_id: string
+          service_request_id?: string | null
+          to_scooter_id: string
+          updated_at?: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_scooter_id?: string
+          id?: string
+          reason?: string
+          rental_id?: string
+          service_request_id?: string | null
+          to_scooter_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_scooter_changes_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_scooter_changes_from_scooter_id_fkey"
+            columns: ["from_scooter_id"]
+            isOneToOne: false
+            referencedRelation: "scooters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_scooter_changes_rental_id_fkey"
+            columns: ["rental_id"]
+            isOneToOne: false
+            referencedRelation: "rentals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_scooter_changes_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_scooter_changes_to_scooter_id_fkey"
+            columns: ["to_scooter_id"]
+            isOneToOne: false
+            referencedRelation: "scooters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rentals: {
         Row: {
@@ -761,11 +881,15 @@ export type Database = {
           admin_notes: string | null
           assigned_to: string | null
           category: Database["public"]["Enums"]["service_category"]
+          closed_at: string | null
           created_at: string
           description: string
           id: string
           photo_paths: string[]
           rental_id: string | null
+          reopened_count: number
+          resolved_at: string | null
+          scooter_id: string | null
           status: Database["public"]["Enums"]["service_status"]
           updated_at: string
           user_id: string
@@ -774,11 +898,15 @@ export type Database = {
           admin_notes?: string | null
           assigned_to?: string | null
           category: Database["public"]["Enums"]["service_category"]
+          closed_at?: string | null
           created_at?: string
           description: string
           id?: string
           photo_paths?: string[]
           rental_id?: string | null
+          reopened_count?: number
+          resolved_at?: string | null
+          scooter_id?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           updated_at?: string
           user_id: string
@@ -787,11 +915,15 @@ export type Database = {
           admin_notes?: string | null
           assigned_to?: string | null
           category?: Database["public"]["Enums"]["service_category"]
+          closed_at?: string | null
           created_at?: string
           description?: string
           id?: string
           photo_paths?: string[]
           rental_id?: string | null
+          reopened_count?: number
+          resolved_at?: string | null
+          scooter_id?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           updated_at?: string
           user_id?: string
@@ -812,10 +944,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "service_requests_scooter_id_fkey"
+            columns: ["scooter_id"]
+            isOneToOne: false
+            referencedRelation: "scooters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "service_requests_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_updates: {
+        Row: {
+          author_id: string | null
+          author_kind: string
+          body: string
+          created_at: string
+          id: string
+          request_id: string
+          status_to: Database["public"]["Enums"]["service_status"] | null
+          updated_at: string
+          visible_to_customer: boolean
+        }
+        Insert: {
+          author_id?: string | null
+          author_kind: string
+          body: string
+          created_at?: string
+          id?: string
+          request_id: string
+          status_to?: Database["public"]["Enums"]["service_status"] | null
+          updated_at?: string
+          visible_to_customer?: boolean
+        }
+        Update: {
+          author_id?: string | null
+          author_kind?: string
+          body?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+          status_to?: Database["public"]["Enums"]["service_status"] | null
+          updated_at?: string
+          visible_to_customer?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_updates_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_updates_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -831,6 +1021,7 @@ export type Database = {
           grace_days: number
           id: number
           late_fee_per_day: number
+          max_scooters_per_customer: number
           support_email: string | null
           support_phone: string | null
           support_whatsapp: string | null
@@ -847,6 +1038,7 @@ export type Database = {
           grace_days?: number
           id?: number
           late_fee_per_day?: number
+          max_scooters_per_customer?: number
           support_email?: string | null
           support_phone?: string | null
           support_whatsapp?: string | null
@@ -863,6 +1055,7 @@ export type Database = {
           grace_days?: number
           id?: number
           late_fee_per_day?: number
+          max_scooters_per_customer?: number
           support_email?: string | null
           support_phone?: string | null
           support_whatsapp?: string | null
@@ -876,9 +1069,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_maintenance_note: {
+        Args: { p_note: string; p_scooter: string }
+        Returns: undefined
+      }
       allocate_scooter: {
         Args: { p_booking: string; p_note?: string; p_scooter: string }
         Returns: string
+      }
+      allocate_scooters: {
+        Args: { p_booking: string; p_note?: string; p_scooters: string[] }
+        Returns: string[]
       }
       apply_current_rent: { Args: { p_rental_ids?: string[] }; Returns: number }
       apply_gateway_payment: {
@@ -888,6 +1089,10 @@ export type Database = {
           p_payment_id: string
         }
         Returns: string
+      }
+      attach_razorpay_order: {
+        Args: { p_order: string; p_razorpay_order_id: string }
+        Returns: undefined
       }
       cancel_booking: { Args: { p_booking: string }; Returns: undefined }
       complete_handover: {
@@ -915,7 +1120,7 @@ export type Database = {
         Args: { p_approve: boolean; p_reason?: string; p_user: string }
         Returns: undefined
       }
-      demo_pay_rent: { Args: { p_rental: string }; Returns: string }
+      demo_pay_rent: { Args: { p_rentals: string[] }; Returns: string }
       enter_trusted: { Args: never; Returns: undefined }
       format_phone_in: { Args: { p: string }; Returns: string }
       has_role: {
@@ -941,13 +1146,11 @@ export type Database = {
         Returns: string
       }
       prepare_rent_payment: {
-        Args: { p_rental: string }
+        Args: { p_rentals: string[] }
         Returns: {
-          amount: number
-          late_fee: number
-          payment_id: string
-          period_end: string
-          period_start: string
+          items: Json
+          order_id: string
+          total: number
         }[]
       }
       record_consent: { Args: never; Returns: undefined }
@@ -979,6 +1182,15 @@ export type Database = {
           total: number
           weeks_due: number
         }[]
+      }
+      replace_scooter: {
+        Args: {
+          p_new_scooter: string
+          p_reason: string
+          p_rental: string
+          p_service_request?: string
+        }
+        Returns: undefined
       }
       report_collections: {
         Args: { p_from: string; p_group?: string; p_to: string }
@@ -1039,7 +1251,7 @@ export type Database = {
       }
       request_account_deletion: { Args: never; Returns: undefined }
       request_scooter: {
-        Args: { p_pickup: string; p_preferred_scooter?: string }
+        Args: { p_pickup: string; p_preferred?: string[]; p_quantity?: number }
         Returns: string
       }
       require_staff: { Args: never; Returns: undefined }
@@ -1049,6 +1261,25 @@ export type Database = {
       }
       save_agreement_template: { Args: { p_body: string }; Returns: number }
       send_due_reminders: { Args: never; Returns: number }
+      service_confirm: {
+        Args: { p_fixed: boolean; p_note?: string; p_request: string }
+        Returns: undefined
+      }
+      service_reply: {
+        Args: { p_body: string; p_request: string }
+        Returns: undefined
+      }
+      service_update: {
+        Args: {
+          p_assigned_to?: string
+          p_note?: string
+          p_request: string
+          p_status?: Database["public"]["Enums"]["service_status"]
+          p_unassign?: boolean
+          p_visible?: boolean
+        }
+        Returns: undefined
+      }
       set_customer_active: {
         Args: { p_active: boolean; p_user: string }
         Returns: undefined
@@ -1061,6 +1292,10 @@ export type Database = {
       sign_agreement: {
         Args: { p_rental: string; p_signature_path: string }
         Returns: string
+      }
+      sign_agreements: {
+        Args: { p_rentals: string[]; p_signature_path: string }
+        Returns: number
       }
       storage_owner_folder: { Args: { object_name: string }; Returns: boolean }
       submit_kyc: {
@@ -1145,12 +1380,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1174,11 +1409,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1199,11 +1434,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1224,11 +1459,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1241,11 +1476,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1308,4 +1543,3 @@ export const Constants = {
     },
   },
 } as const
-

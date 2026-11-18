@@ -9,6 +9,7 @@ import { ROLE_LABEL } from '@snireva/shared'
 import { supabase } from '@/lib/supabase'
 import { isManager, useAuth } from '@/lib/auth'
 import { cx } from './ui'
+import { LiveSync } from '@/lib/live'
 
 type Item = { to: string; label: string; icon: LucideIcon; badge?: number; managerOnly?: boolean }
 
@@ -20,7 +21,7 @@ function useBadges() {
       const [kyc, bookings, service] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'customer').in('kyc_status', ['submitted', 'under_review']),
         supabase.from('booking_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('service_requests').select('id', { count: 'exact', head: true }).in('status', ['open']),
+        supabase.from('service_requests').select('id', { count: 'exact', head: true }).in('status', ['open', 'assigned', 'in_progress']),
       ])
       return { kyc: kyc.count ?? 0, bookings: bookings.count ?? 0, service: service.count ?? 0 }
     },
@@ -46,6 +47,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-dvh">
+      <LiveSync />
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2">Skip to content</a>
       <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col border-r border-line bg-surface">
         <div className="flex h-16 items-center gap-3 border-b border-line px-4">

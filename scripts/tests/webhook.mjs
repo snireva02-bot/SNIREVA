@@ -1,15 +1,15 @@
 // Exercises the real razorpay-webhook function (run locally via scripts/serve-fn.mjs razorpay-webhook)
 import { createHmac } from 'node:crypto';
-import { signIn, check, summary, admin, env } from './helpers.mjs';
+import { signIn, check, summary, admin, env, prepareGateway } from './helpers.mjs';
 
 console.log('Webhook function (local Deno)');
 const secret = env.RAZORPAY_WEBHOOK_SECRET ?? 'local_test_webhook_secret';
 const url = process.env.WEBHOOK_URL ?? 'http://localhost:8000';
 const c1 = await signIn('customer1');
 const { data: rental } = await c1.from('rentals').select('id, next_due_date').eq('status', 'active').single();
-const { data: prep } = await c1.rpc('prepare_rent_payment', { p_rental: rental.id });
-const orderId = `order_wh_${Date.now()}`, payId = `pay_wh_${Date.now()}`;
-await admin.from('payments').update({ razorpay_order_id: orderId }).eq('id', prep[0].payment_id);
+const g = await prepareGateway(c1, [rental.id]);
+const orderId = g.rzp, payId = `pay_wh_${Date.now()}`;
+const prep = [{ payment_id: g.prep.items[0].payment_id, amount: Number(g.prep.total) }];
 
 const body = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { id: payId, order_id: orderId, amount: Math.round(prep[0].amount * 100), status: 'captured' } } } });
 const sign = (b) => createHmac('sha256', secret).update(b).digest('hex');

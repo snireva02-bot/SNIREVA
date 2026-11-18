@@ -9,7 +9,7 @@ const victim = accounts.customer1.id;
 
 const owned = {
   profiles: 'id', kyc_documents: 'user_id', booking_requests: 'user_id', rentals: 'user_id', payments: 'user_id',
-  service_requests: 'user_id', notifications: 'user_id',
+  service_requests: 'user_id', notifications: 'user_id', payment_orders: 'user_id',
 };
 for (const [table, col] of Object.entries(owned)) {
   const { count: real } = await admin.from(table).select('*', { count: 'exact', head: true }).eq(col, victim);
@@ -21,6 +21,17 @@ for (const [table, col] of Object.entries(owned)) {
 for (const table of ['agreements', 'handover_records']) {
   const { data } = await c2.from(table).select('*');
   check(`${table}: other customer reads none`, (data ?? []).length === 0);
+}
+{
+  const { data: reqs } = await admin.from('service_requests').select('id').eq('user_id', victim);
+  const { count: real } = await admin.from('service_updates').select('*', { count: 'exact', head: true }).in('request_id', (reqs ?? []).map((r) => r.id));
+  const { data } = await c2.from('service_updates').select('id').in('request_id', (reqs ?? []).map((r) => r.id));
+  check(`service_updates: other customer reads 0 of ${real} timeline entries`, (data ?? []).length === 0);
+  const { data: rents } = await admin.from('rentals').select('id').eq('user_id', victim);
+  const { data: ch } = await c2.from('rental_scooter_changes').select('id').in('rental_id', (rents ?? []).map((r) => r.id));
+  check('rental_scooter_changes: other customer reads none', (ch ?? []).length === 0);
+  const { error } = await c2.from('service_updates').insert({ request_id: (reqs ?? [])[0]?.id, author_kind: 'customer', body: 'x' });
+  check('blocked: writing into another rider timeline', !!error);
 }
 for (const table of ['audit_log', 'agreement_templates']) {
   const { data } = await c2.from(table).select('*').limit(1);

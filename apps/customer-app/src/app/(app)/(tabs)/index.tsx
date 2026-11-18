@@ -5,10 +5,10 @@ import { Bell, FileUp, ShieldAlert, Clock } from 'lucide-react-native';
 import { KYC_STATUS } from '@snireva/shared';
 import { Button, Card, Chip, OfflineBanner, Screen, Skeleton, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { useCurrentRental, useLastBooking, usePendingBooking, useUnreadCount } from '@/lib/queries';
+import { isLive, useLastBooking, useOpenRentals, usePendingBooking, useUnreadCount } from '@/lib/queries';
 import { DueCard } from '@/components/home/DueCard';
 import { GetScooterCard, PendingBookingCard, RentalSetupCard } from '@/components/home/StatusCards';
-import { LifeBuoy, Wrench, type LucideIcon } from 'lucide-react-native';
+import { LifeBuoy, Plus, Wrench, type LucideIcon } from 'lucide-react-native';
 import { Appear } from '@/components/motion';
 import { useOffline } from '@/lib/network';
 import { colors, space, touch } from '@/lib/theme';
@@ -77,16 +77,33 @@ function KycCard() {
 
 function Primary() {
   const { profile } = useAuth();
-  const rental = useCurrentRental();
+  const rentals = useOpenRentals();
   const pending = usePendingBooking();
   const last = useLastBooking();
-  if (profile?.kyc_status !== 'approved' && !rental.data) return <KycCard />;
-  if (rental.isPending || pending.isPending) return <Card style={{ gap: space.md }}><Skeleton height={16} width={140} /><Skeleton height={40} width={180} /><Skeleton height={48} /></Card>;
-  const r = rental.data;
-  if (r && (r.status === 'active' || r.status === 'overdue')) return <DueCard rental={r} />;
-  if (r) return <RentalSetupCard rental={r} />;
-  if (pending.data) return <PendingBookingCard booking={pending.data} />;
-  return <GetScooterCard last={last.data} />;
+  const list = rentals.data ?? [];
+  if (profile?.kyc_status !== 'approved' && !list.length) return <KycCard />;
+  if (rentals.isPending || pending.isPending) return <Card style={{ gap: space.md }}><Skeleton height={16} width={140} /><Skeleton height={40} width={180} /><Skeleton height={48} /></Card>;
+  const live = list.filter(isLive);
+  const setup = list.filter((r) => !isLive(r));
+  if (!list.length && !pending.data) return <GetScooterCard last={last.data} />;
+  return (
+    <View style={{ gap: space.lg }}>
+      {setup.length ? <RentalSetupCard rentals={setup} /> : null}
+      {live.length ? <DueCard rentals={live} /> : null}
+      {pending.data ? <PendingBookingCard booking={pending.data} /> : null}
+      {live.length && !pending.data && !setup.length ? (
+        <Card onPress={() => router.push('/scooters')} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+          <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center' }}>
+            <Plus size={20} color={colors.brandPress} strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyMedium">Need more scooters?</Text>
+            <Text variant="caption">Add scooters for your delivery team</Text>
+          </View>
+        </Card>
+      ) : null}
+    </View>
+  );
 }
 
 export default function Home() {

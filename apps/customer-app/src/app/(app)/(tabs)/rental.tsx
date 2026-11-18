@@ -1,70 +1,68 @@
-import { Linking, RefreshControl, View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 import { router } from 'expo-router';
-import { FileText, KeyRound, MapPin, Wrench } from 'lucide-react-native';
+import { KeyRound, Plus } from 'lucide-react-native';
 import { daysUntil, formatDate, formatINR, RENTAL_STATUS } from '@snireva/shared';
-import { Banner, Button, Card, Chip, EmptyState, ListItem, OfflineBanner, Row, Screen, SectionTitle, Skeleton, Text } from '@/components/ui';
+import { Button, Card, Chip, EmptyState, OfflineBanner, Screen, SectionTitle, Skeleton, Text } from '@/components/ui';
 import { ScooterImage } from '@/components/ScooterCard';
-import { useAmountDue, useCurrentRental } from '@/lib/queries';
+import { Appear } from '@/components/motion';
+import { isLive, useDueSummary, useOpenRentals } from '@/lib/queries';
 import { useOffline } from '@/lib/network';
 import { colors, space } from '@/lib/theme';
 import { t } from '@/i18n';
 
 export default function RentalTab() {
-  const q = useCurrentRental();
+  const q = useOpenRentals();
   const offline = useOffline();
-  const r = q.data;
-  const due = useAmountDue(r && ['active', 'overdue'].includes(r.status) ? r.id : null);
+  const list = q.data ?? [];
+  const s = useDueSummary(list);
+  const live = list.filter(isLive);
 
-  if (q.isPending) return <Screen title="Rental" back={false} tabScreen><Skeleton height={120} /><Skeleton height={200} /></Screen>;
-  if (!r) {
+  if (q.isPending) return <Screen title="My scooters" back={false} tabScreen><Skeleton height={96} /><Skeleton height={96} /></Screen>;
+  if (!list.length) {
     return (
-      <Screen title="Rental" back={false} tabScreen>
+      <Screen title="My scooters" back={false} tabScreen>
         <OfflineBanner offline={offline} text={t('common.offline')} />
-        <EmptyState icon={KeyRound} title="No active rental" body="Once a scooter is allocated to you, its details and due dates show here."
-          action={<Button title="Browse scooters" onPress={() => router.push('/scooters')} />} />
+        <EmptyState icon={KeyRound} title="No scooters yet" body="Once scooters are allocated to you, each one shows here with its due date."
+          action={<Button title="Get scooters" onPress={() => router.push('/scooters')} />} />
       </Screen>
     );
   }
-  const live = r.status === 'active' || r.status === 'overdue';
-  const d = r.next_due_date ? daysUntil(r.next_due_date) : null;
 
   return (
-    <Screen title="Rental" back={false} tabScreen
-      refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => { q.refetch(); due.refetch(); }} tintColor={colors.brand} />}
-      footer={live ? <Button title={`Pay ${formatINR(due.data?.total ?? r.weekly_rent)}`} onPress={() => router.push('/pay')} /> : undefined}>
+    <Screen title="My scooters" back={false} tabScreen
+      refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => { q.refetch(); s.refetch(); }} tintColor={colors.brand} />}
+      footer={live.length ? <Button title={s.loading ? (live.length > 1 ? 'Pay all' : 'Pay rent') : live.length > 1 ? `Pay all · ${formatINR(s.total)}` : `Pay ${formatINR(s.total)}`} onPress={() => router.push('/pay')} /> : undefined}>
       <OfflineBanner offline={offline} text={t('common.offline')} />
-      {r.renewal_blocked ? <Banner tone="red" title="Renewal on hold" body={r.renewal_block_reason ?? undefined} /> : null}
-      <Card style={{ gap: space.lg }}>
-        <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
-          <ScooterImage path={r.scooter?.photo_paths[0]} size={64} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="bodyMedium">{r.scooter?.model}</Text>
-            <Text variant="caption">{r.scooter?.code}</Text>
-          </View>
-          <Chip meta={RENTAL_STATUS[r.status]} />
-        </View>
-        {live ? (
-          <View style={{ gap: 2 }}>
-            <Text variant="small">Next rent due</Text>
-            <Text variant="title" color={d !== null && d < 0 ? colors.bad : colors.ink}>
-              {formatDate(r.next_due_date)} <Text variant="small">{d === null ? '' : d < 0 ? `· ${-d} days late` : d === 0 ? '· today' : `· in ${d} days`}</Text>
-            </Text>
-          </View>
-        ) : null}
-      </Card>
-      <Card style={{ paddingVertical: space.sm }}>
-        <Row label="Weekly rent" value={formatINR(r.weekly_rent)} />
-        <Row label="Deposit" value={formatINR(r.deposit_amount)} />
-        <Row label="Started" value={formatDate(r.start_date, true)} />
-        {live ? <Row label="Amount due" value={formatINR(due.data?.total ?? 0)} valueStyle={(due.data?.days_late ?? 0) > 0 ? { color: colors.bad } : undefined} /> : null}
-        <Row label="Battery" value={r.scooter?.battery_details ?? '—'} last />
-      </Card>
-      <SectionTitle>Manage</SectionTitle>
-      <Card style={{ padding: 0 }}>
-        <ListItem icon={FileText} title="Rental agreement" subtitle={r.status === 'pending_agreement' ? 'Needs your signature' : 'View or download'} onPress={() => router.push('/agreement')} />
-        <ListItem icon={Wrench} title="Report a problem" subtitle="Battery, brakes, tyres and more" onPress={() => router.push('/service/new')} />
-        {r.pickup ? <ListItem icon={MapPin} title={r.pickup.name} subtitle={r.pickup.address} last
-          onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(r.pickup!.address)}`)} /> : null}
+      <SectionTitle action={<Text variant="caption">{list.length} scooter{list.length === 1 ? '' : 's'}</Text>}>Your fleet</SectionTitle>
+      {list.map((r, i) => {
+        const d = r.next_due_date ? daysUntil(r.next_due_date) : null;
+        const due = s.items.find((x) => x.rental.id === r.id)?.due;
+        return (
+          <Appear key={r.id} index={i}>
+            <Card onPress={() => router.push(`/rental/${r.id}`)} style={{ gap: space.md }}>
+              <View style={{ flexDirection: 'row', gap: space.lg, alignItems: 'center' }}>
+                <ScooterImage path={r.scooter?.photo_paths[0]} size={56} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text variant="bodyMedium">{r.scooter?.code}</Text>
+                  <Text variant="caption">{r.scooter?.model}</Text>
+                </View>
+                <Chip meta={RENTAL_STATUS[r.status]} />
+              </View>
+              {isLive(r) ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text variant="small" color={d !== null && d < 0 ? colors.bad : colors.ink2}>
+                    {d === null ? '' : d < 0 ? `Due ${formatDate(r.next_due_date)} · ${-d} days late` : `Due ${formatDate(r.next_due_date)}`}
+                  </Text>
+                  <Text variant="smallMedium" style={{ fontVariant: ['tabular-nums'] }}>{formatINR(due?.total ?? r.weekly_rent)}</Text>
+                </View>
+              ) : null}
+            </Card>
+          </Appear>
+        );
+      })}
+      <Card onPress={() => router.push('/scooters')} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+        <Plus size={20} color={colors.brand} strokeWidth={2} />
+        <Text variant="bodyMedium" color={colors.brand}>Add more scooters</Text>
       </Card>
     </Screen>
   );

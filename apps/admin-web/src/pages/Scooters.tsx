@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
 import { ImagePlus, Plus, Trash2 } from 'lucide-react'
-import { formatDate, formatINR, SCOOTER_STATUS, scooterSchema } from '@snireva/shared'
+import { formatDate, formatINR, RENTAL_STATUS, SCOOTER_STATUS, scooterSchema, SERVICE_CATEGORY_LABEL, SERVICE_STATUS } from '@snireva/shared'
 import { supabase, type Enums, type Tables } from '@/lib/supabase'
 import { isManager, useAuth } from '@/lib/auth'
 import { useSettings } from '@/lib/queries'
 import { DataTable, FilterSelect, SearchBox, useTableState } from '@/components/DataTable'
-import { Button, Chip, Confirm, Drawer, Field, IconButton, Input, PageHeader, Select, Textarea, useToast } from '@/components/ui'
+import { Button, Chip, Confirm, Drawer, Field, IconButton, Input, PageHeader, Select, Skeleton, Textarea, useToast } from '@/components/ui'
+import { Link } from 'react-router-dom'
 
 type Scooter = Tables<'scooters'>
 const col = createColumnHelper<Scooter>()
@@ -140,10 +141,64 @@ function ScooterDrawer({ scooter, open, onClose }: { scooter: Scooter | null; op
           </div>
         </div>
       </form>
+      {scooter && <div className="mt-6"><ScooterHistory id={scooter.id} /></div>}
       <Confirm open={confirmDelete} title={`Delete ${scooter?.code}?`} danger confirmLabel="Delete"
         body="This can't be undone. Scooters with rental history can only be retired." loading={del.isPending}
         onConfirm={() => del.mutate()} onClose={() => setConfirmDelete(false)} />
     </Drawer>
+  )
+}
+
+
+function ScooterHistory({ id }: { id: string }) {
+  const q = useQuery({
+    queryKey: ['scooter-history', id],
+    queryFn: async () => {
+      const [rentals, service, swaps] = await Promise.all([
+        supabase.from('rentals').select('id, status, start_date, ended_at, customer:profiles!rentals_user_id_fkey(full_name)').eq('scooter_id', id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('service_requests').select('id, category, status, created_at, description').eq('scooter_id', id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('rental_scooter_changes').select('id, rental_id, reason, created_at, from_scooter_id, from:scooters!rental_scooter_changes_from_scooter_id_fkey(code), to:scooters!rental_scooter_changes_to_scooter_id_fkey(code)').or(`from_scooter_id.eq.${id},to_scooter_id.eq.${id}`).order('created_at', { ascending: false }),
+      ])
+      return { rentals: rentals.data ?? [], service: service.data ?? [], swaps: swaps.data ?? [] }
+    },
+  })
+  if (!q.data) return <Skeleton className="h-24 w-full" />
+  const { rentals, service, swaps } = q.data
+  return (
+    <section className="flex flex-col gap-4 border-t border-line pt-4" aria-label="History">
+      <h3 className="text-lg font-semibold">History</h3>
+      <div>
+        <p className="mb-1 text-sm font-medium text-ink-2">Rentals</p>
+        {rentals.length === 0 ? <p className="text-sm text-muted">Never rented.</p> : (
+          <ul className="flex flex-col gap-1 text-sm">{rentals.map((r) => (
+            <li key={r.id} className="flex items-center justify-between gap-2">
+              <Link to={`/rentals/${r.id}`} className="text-brand-press hover:underline">{r.customer?.full_name}</Link>
+              <span className="num text-ink-2">{r.start_date ? formatDate(r.start_date) : '—'}{r.ended_at ? ` – ${formatDate(r.ended_at)}` : ''}</span>
+              <Chip meta={RENTAL_STATUS[r.status]} />
+            </li>))}
+          </ul>
+        )}
+      </div>
+      <div>
+        <p className="mb-1 text-sm font-medium text-ink-2">Problems reported on this scooter</p>
+        {service.length === 0 ? <p className="text-sm text-muted">None.</p> : (
+          <ul className="flex flex-col gap-1.5 text-sm">{service.map((x) => (
+            <li key={x.id} className="flex items-start justify-between gap-2">
+              <span><span className="font-medium">{SERVICE_CATEGORY_LABEL[x.category]}</span> <span className="num text-ink-2">· {formatDate(x.created_at)}</span><span className="line-clamp-1 text-ink-2">{x.description}</span></span>
+              <Chip meta={SERVICE_STATUS[x.status]} />
+            </li>))}
+          </ul>
+        )}
+      </div>
+      {swaps.length > 0 && (
+        <div>
+          <p className="mb-1 text-sm font-medium text-ink-2">Swaps</p>
+          <ul className="flex flex-col gap-1 text-sm">{swaps.map((c) => (
+            <li key={c.id}><Link to={`/rentals/${c.rental_id}`} className="hover:underline">{c.from?.code} → {c.to?.code}</Link> <span className="text-ink-2">· {formatDate(c.created_at)} · {c.reason}</span></li>))}
+          </ul>
+        </div>
+      )}
+    </section>
   )
 }
 

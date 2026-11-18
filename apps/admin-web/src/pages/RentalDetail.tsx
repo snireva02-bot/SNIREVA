@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Camera, FileDown, ImagePlus, PauseCircle, PlayCircle, Undo2, Trash2, ClipboardCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRightLeft, Camera, FileDown, ImagePlus, PauseCircle, PlayCircle, Undo2, Trash2, ClipboardCheck } from 'lucide-react'
 import {
   daysUntil, formatDate, formatDateTime, formatINR, formatPhone, PAYMENT_METHOD_LABEL, PAYMENT_STATUS,
-  PAYMENT_TYPE_LABEL, RENTAL_STATUS,
+  PAYMENT_TYPE_LABEL, RENTAL_STATUS, SERVICE_CATEGORY_LABEL, SERVICE_STATUS,
 } from '@snireva/shared'
 import { must, signedUrl, supabase, type Enums, type Tables } from '@/lib/supabase'
 import {
@@ -167,20 +167,40 @@ export function RentalDetail() {
   const [confirm, setConfirm] = useState<'terminate' | 'hold' | 'release' | null>(null)
   const [reason, setReason] = useState('')
   const [showTerms, setShowTerms] = useState(false)
+  const [swapOpen, setSwapOpen] = useState(false)
+  const [spare, setSpare] = useState('')
+  const [swapReason, setSwapReason] = useState('')
+  const spares = useQuery({
+    queryKey: ['scooters-available'],
+    enabled: swapOpen,
+    queryFn: async () => must(await supabase.from('scooters').select('id, code, model').eq('status', 'available').order('code')),
+  })
+  const swap = useMutation({
+    mutationFn: async () => must(await supabase.rpc('replace_scooter', { p_rental: id, p_new_scooter: spare, p_reason: swapReason })),
+    onSuccess: () => { toast('ok', 'Scooter replaced. The old one is in maintenance; the rider was notified.'); setSwapOpen(false); setSpare(''); setSwapReason(''); qc.invalidateQueries({ queryKey: ['rental', id] }) },
+    onError: (e) => toast('error', (e as Error).message),
+  })
 
   const q = useQuery({
     queryKey: ['rental', id],
     queryFn: async () => {
-      const [rental, agreement, records, payments, due] = await Promise.all([
+      const [rental, agreement, records, payments, due, service, changes] = await Promise.all([
         supabase.from('rentals').select('*, customer:profiles!rentals_user_id_fkey(id, full_name, phone), scooter:scooters(id, code, model, chassis_no, battery_no), pickup:pickup_locations(name)').eq('id', id).single(),
         supabase.from('agreements').select('*').eq('rental_id', id).maybeSingle(),
         supabase.from('handover_records').select('*, by:profiles!handover_records_recorded_by_fkey(full_name)').eq('rental_id', id).order('created_at'),
         supabase.from('payments').select('*, by:profiles!payments_recorded_by_fkey(full_name)').eq('rental_id', id).order('created_at', { ascending: false }),
         supabase.rpc('rental_amount_due', { p_rental: id }),
+        supabase.from('service_requests').select('id, category, status, created_at, scooter:scooters(code)').eq('rental_id', id).order('created_at', { ascending: false }),
+        supabase.from('rental_scooter_changes').select('id, reason, created_at, from:scooters!rental_scooter_changes_from_scooter_id_fkey(code), to:scooters!rental_scooter_changes_to_scooter_id_fkey(code), by:profiles(full_name)').eq('rental_id', id).order('created_at', { ascending: false }),
       ])
+      const r0 = must(rental) as unknown as Rental
+      const siblings = r0.booking_request_id
+        ? must(await supabase.from('rentals').select('id, status, scooter:scooters(code)').eq('booking_request_id', r0.booking_request_id).neq('id', id).order('created_at')) ?? []
+        : []
       if (agreement.error) throw agreement.error
       return {
-        rental: must(rental) as unknown as Rental, agreement: agreement.data, records: must(records), payments: must(payments),
+        rental: r0, agreement: agreement.data, records: must(records), payments: must(payments),
+        service: must(service) ?? [], changes: must(changes) ?? [], siblings,
         due: (must(due) as unknown as { rent: number; late_fee: number; total: number; outstanding: number; days_late: number; weeks_due: number }[])[0],
       }
     },
@@ -204,7 +224,7 @@ export function RentalDetail() {
 
   if (q.isPending) return <div className="flex flex-col gap-4"><Skeleton className="h-8 w-72" /><Skeleton className="h-28 w-full" /><Skeleton className="h-64 w-full" /></div>
   if (q.error) return <ErrorNote error={q.error} onRetry={() => q.refetch()} />
-  const { rental: r, agreement, records, payments, due } = q.data
+  const { rental: r, agreement, records, payments, due, service, changes, siblings } = q.data
   const live = r.status === 'active' || r.status === 'overdue'
   const closed = r.status === 'returned' || r.status === 'terminated'
   const d = r.next_due_date ? daysUntil(r.next_due_date) : null
@@ -220,6 +240,7 @@ export function RentalDetail() {
           {live && (r.renewal_blocked
             ? <Button icon={PlayCircle} onClick={() => setConfirm('release')}>Allow renewal</Button>
             : <Button icon={PauseCircle} onClick={() => setConfirm('hold')}>Hold renewal</Button>)}
+          {!closed && <Button icon={ArrowRightLeft} onClick={() => setSwapOpen(true)}>Replace scooter</Button>}
           {live && <Button icon={Undo2} onClick={() => setDrawer('return')}>Record return</Button>}
           {live && <Button variant="primary" onClick={() => setDrawer('payment')}>Record payment</Button>}
           {r.status === 'pending_handover' && <Button variant="primary" icon={ClipboardCheck} onClick={() => setDrawer('handover')}>Start handover</Button>}
@@ -285,6 +306,7 @@ export function RentalDetail() {
           </Section>
         </div>
 
+        <div className="flex flex-col gap-4">
         <Section title="Agreement" actions={pdf.data && <a href={pdf.data} target="_blank" rel="noreferrer"><Button size="sm" icon={FileDown}>PDF</Button></a>}>
           {!agreement ? <p className="text-base text-ink-2">Not signed yet.</p> : (
             <div className="flex flex-col gap-4">
@@ -300,7 +322,61 @@ export function RentalDetail() {
             </div>
           )}
         </Section>
+
+        {siblings.length > 0 && (
+          <Section title={`Same booking · ${siblings.length + 1} scooters`}>
+            <ul className="flex flex-col gap-1.5 text-base">
+              {siblings.map((x) => (
+                <li key={x.id} className="flex items-center justify-between">
+                  <Link to={`/rentals/${x.id}`} className="font-medium text-brand-press hover:underline">{x.scooter?.code}</Link>
+                  <Chip meta={RENTAL_STATUS[x.status]} />
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        <Section title="Problems reported" actions={<Link to="/service" className="text-sm text-brand-press hover:underline">All requests</Link>}>
+          {service.length === 0 ? <p className="text-base text-ink-2">None for this rental.</p> : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {service.map((x) => (
+                <li key={x.id} className="flex items-center justify-between gap-2">
+                  <span>{SERVICE_CATEGORY_LABEL[x.category]} <span className="text-ink-2">· {x.scooter?.code} · {formatDate(x.created_at)}</span></span>
+                  <Chip meta={SERVICE_STATUS[x.status]} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        {changes.length > 0 && (
+          <Section title="Scooter changes">
+            <ul className="flex flex-col gap-2 text-sm">
+              {changes.map((c) => (
+                <li key={c.id}>
+                  <p className="font-medium">{c.from?.code} → {c.to?.code}</p>
+                  <p className="text-ink-2">{formatDateTime(c.created_at)}{c.by?.full_name ? ` by ${c.by.full_name}` : ''} · {c.reason}</p>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+        </div>
       </div>
+
+      <Drawer open={swapOpen} onClose={() => setSwapOpen(false)} title={`Replace ${r.scooter?.code}`}
+        footer={<><Button onClick={() => setSwapOpen(false)}>Cancel</Button><Button variant="primary" disabled={!spare || !swapReason.trim()} loading={swap.isPending} onClick={() => swap.mutate()}>Replace scooter</Button></>}>
+        <div className="flex flex-col gap-4">
+          <p className="text-base text-ink-2">{r.scooter?.code} goes to maintenance with your reason in its log. The rental, due dates and payments carry over to the new scooter, and the rider is notified.</p>
+          <Field label="Replacement scooter" htmlFor="sp">
+            <Select id="sp" value={spare} onChange={(e) => setSpare(e.target.value)}>
+              <option value="" disabled>Choose available scooter</option>
+              {spares.data?.map((x) => <option key={x.id} value={x.id}>{x.code} · {x.model}</option>)}
+            </Select>
+          </Field>
+          <Field label="Reason" htmlFor="swr"><Input id="swr" value={swapReason} onChange={(e) => setSwapReason(e.target.value)} placeholder="e.g. Motor noise, sent for inspection" /></Field>
+        </div>
+      </Drawer>
 
       <ChecklistDrawer rental={r} kind="handover" open={drawer === 'handover'} onClose={() => setDrawer(null)} outstanding={0} />
       <ChecklistDrawer rental={r} kind="return" open={drawer === 'return'} onClose={() => setDrawer(null)} outstanding={Number(due?.outstanding ?? 0)} />

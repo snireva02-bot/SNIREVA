@@ -21,11 +21,26 @@ await p.getByText('Customer approved').waitFor({ timeout: 10000 });
 check('approved Arjun KYC through the document viewer', true);
 await p.screenshot({ path: 'scripts/.screens/e2e-admin-kyc.png' });
 
-// Allocate Kiran's booking
+// Allocate Kiran's 2-scooter booking (rider's pick pre-ticked + one more)
 await p.goto(ADMIN + '/bookings'); await p.getByRole('row', { name: /Kiran Kumar/ }).getByRole('button', { name: 'Allocate' }).click();
-await p.getByRole('dialog').getByRole('button', { name: 'Allocate scooter' }).click();
-await p.getByText('Scooter allocated').waitFor({ timeout: 10000 });
-check('allocated a scooter to Kiran', true);
+const dlg = p.getByRole('dialog');
+await dlg.getByText("Rider's pick").first().waitFor();
+await dlg.locator('input[type=checkbox]:not(:checked):not(:disabled)').first().check();
+await dlg.getByRole('button', { name: 'Allocate 2 scooters' }).click();
+await p.getByText(/2 scooters allocated/).waitFor({ timeout: 10000 });
+check('allocated 2 scooters to Kiran in one go', true);
+
+// Handle Suresh's battery problem: reply + replacement scooter
+await p.goto(ADMIN + '/service'); await p.getByRole('row', { name: /Suresh Babu/ }).click();
+await p.getByText('Timeline').waitFor(); await p.getByText(/Technician Anil/).waitFor({ timeout: 10000 });
+check('staff see internal note in timeline', await p.getByText(/weak cell/).isVisible());
+await p.screenshot({ path: 'scripts/.screens/e2e-admin-service.png' });
+await p.getByRole('button', { name: 'Give replacement scooter' }).click();
+await p.getByLabel('Replacement').selectOption({ index: 1 });
+await p.getByLabel('Reason').fill('Battery cell fault');
+await p.getByRole('button', { name: 'Confirm replacement' }).click();
+await p.getByText(/Replacement given/).waitFor({ timeout: 10000 });
+check('gave Suresh a replacement scooter from the service request', true);
 
 // Record offline payment for Suresh (overdue)
 await p.goto(ADMIN + '/rentals?view=overdue'); await p.getByText('Suresh Babu').click();

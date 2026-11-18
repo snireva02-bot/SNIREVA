@@ -30,3 +30,4 @@ scripts/.dbg.mjs
 supabase/.env.functions
 scripts/.demo-accounts.json
 *service-account*.json
+scripts/.run-all.log

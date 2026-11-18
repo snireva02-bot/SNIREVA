@@ -1,41 +1,43 @@
-// Customer app -> create a Razorpay order for the rent currently due.
-// Amount is computed in the database (prepare_rent_payment); the client only sends rental_id.
+// Customer app -> one Razorpay order for the rent due on one or more of the customer's scooters.
+// Amounts are computed in the database (prepare_rent_payment); the client only sends rental ids.
 import { env, HttpError, json, serve } from '../_shared/http.ts';
 import { adminClient, caller } from '../_shared/supabase.ts';
 
 serve(async (req) => {
   const { client, profile } = await caller(req);
-  const { rental_id } = await req.json().catch(() => ({}));
-  if (!rental_id || typeof rental_id !== 'string') throw new HttpError(400, 'rental_id is required');
+  const body = await req.json().catch(() => ({}));
+  const ids: string[] = Array.isArray(body.rental_ids) ? body.rental_ids : body.rental_id ? [body.rental_id] : [];
+  if (!ids.length || ids.some((x) => typeof x !== 'string')) throw new HttpError(400, 'rental_ids is required');
 
-  // Runs as the customer: checks ownership, status, renewal hold.
-  const { data, error } = await client.rpc('prepare_rent_payment', { p_rental: rental_id });
+  // Runs as the customer: checks ownership, status, renewal hold; computes the amount.
+  const { data, error } = await client.rpc('prepare_rent_payment', { p_rentals: ids });
   if (error) throw new HttpError(400, error.message);
-  const pay = data[0] as { payment_id: string; amount: number; late_fee: number; period_start: string; period_end: string };
+  const prep = data[0] as { order_id: string; total: number; items: { payment_id: string; rental_id: string; amount: number }[] };
 
   const keyId = env('RAZORPAY_KEY_ID');
   const res = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',
     headers: { Authorization: `Basic ${btoa(`${keyId}:${env('RAZORPAY_KEY_SECRET')}`)}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      amount: Math.round(Number(pay.amount) * 100),
+      amount: Math.round(Number(prep.total) * 100),
       currency: 'INR',
-      receipt: pay.payment_id.replace(/-/g, '').slice(0, 40),
-      notes: { payment_id: pay.payment_id, rental_id, user_id: profile.id },
+      receipt: prep.order_id.replace(/-/g, '').slice(0, 40),
+      notes: { order_id: prep.order_id, scooters: String(prep.items.length), user_id: profile.id },
     }),
   });
   const order = await res.json();
+  const db = adminClient();
   if (!res.ok) {
-    await adminClient().from('payments').update({ status: 'failed', failure_reason: `Order error: ${order?.error?.description ?? res.status}` }).eq('id', pay.payment_id);
+    await db.from('payment_orders').update({ status: 'failed', failure_reason: `Order error: ${order?.error?.description ?? res.status}` }).eq('id', prep.order_id);
+    await db.from('payments').update({ status: 'failed', failure_reason: 'Order could not be created' }).eq('order_id', prep.order_id);
     throw new HttpError(502, 'Payment service is unavailable. Try again shortly.');
   }
-
-  const { error: upErr } = await adminClient().from('payments').update({ razorpay_order_id: order.id }).eq('id', pay.payment_id);
+  const { error: upErr } = await db.rpc('attach_razorpay_order', { p_order: prep.order_id, p_razorpay_order_id: order.id });
   if (upErr) throw new HttpError(500, upErr.message);
 
   return json({
-    order_id: order.id, key_id: keyId, amount: Number(pay.amount), amount_paise: order.amount, currency: 'INR',
-    payment_id: pay.payment_id, late_fee: Number(pay.late_fee), period_start: pay.period_start, period_end: pay.period_end,
+    order_id: order.id, key_id: keyId, amount: Number(prep.total), amount_paise: order.amount, currency: 'INR',
+    payment_order_id: prep.order_id, items: prep.items,
     prefill: { name: profile.full_name ?? '', contact: profile.phone ?? '' },
   });
 });

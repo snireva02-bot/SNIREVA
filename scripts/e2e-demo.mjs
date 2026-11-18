@@ -39,17 +39,43 @@ console.log('Rider app (demo mode)');
   check('Suresh sees overdue amount with late fee', await p.getByText('₹1,970').first().isVisible() && await p.getByText(/late fee/).first().isVisible());
   await shot(p, 'suresh-home'); await p.close();
 }
-{ // Imran requests a scooter
+{ // Imran requests 2 scooters (bulk)
   const p = await rider('Mohammed Imran');
   await p.getByRole('button', { name: 'Browse scooters' }).click();
-  await p.getByText('Available now').waitFor();
+  await p.getByText('How many scooters?').waitFor({ timeout: 20000 });
+  await p.getByLabel('More scooters').click();
   await p.getByLabel(/Pickup location/).click();
   await p.getByText('Madhapur hub').last().click();
   await shot(p, 'imran-scooters');
-  await p.getByRole('button', { name: 'Request scooter' }).click();
-  await p.locator('text=Request sent >> visible=true').first().waitFor({ timeout: 15000 });
-  check('Imran requested a scooter', true);
+  await p.getByRole('button', { name: 'Request 2 scooters' }).click();
+  await p.locator('text=Request for 2 scooters sent >> visible=true').first().waitFor({ timeout: 15000 });
+  check('Imran requested 2 scooters', true);
   await shot(p, 'imran-requested'); await p.close();
+}
+{ // Venkat: fleet of 3, one payment
+  const p = await rider('Venkat Fleet Services');
+  await p.getByText(/For 3 scooters/).first().waitFor({ timeout: 20000 });
+  check('Venkat sees combined rent for 3 scooters', true);
+  await shot(p, 'venkat-home');
+  await p.getByText('Rental', { exact: true }).last().click();
+  await p.getByText('Your fleet').waitFor();
+  check('My scooters lists 3 scooters', (await p.locator('text=/^SNR-0(01|02|11)$/').count()) >= 3);
+  await shot(p, 'venkat-fleet');
+  await p.getByRole('button', { name: /^Pay all/ }).click();
+  await p.getByText(/3 scooters/).first().waitFor();
+  await shot(p, 'venkat-pay');
+  await p.getByRole('button', { name: /^Pay ₹/ }).click();
+  await p.getByText('Payment received').waitFor({ timeout: 30000 });
+  check('one payment renewed all 3 scooters', await p.getByText('3 scooters renewed.').isVisible());
+  await p.waitForTimeout(800); await shot(p, 'venkat-paid'); await p.close();
+}
+{ // Suresh: battery problem being handled
+  const p = await rider('Suresh Babu');
+  await p.goto(APP + '/service'); await p.locator('text=Battery >> visible=true').first().click();
+  await p.getByText('Updates').waitFor({ timeout: 20000 });
+  check('Suresh sees staff update in timeline', await p.getByText(/Technician Anil/).isVisible());
+  check('internal note hidden from Suresh', !(await p.getByText(/weak cell/).count()));
+  await shot(p, 'suresh-service'); await p.close();
 }
 { // Lakshmi sees agreement
   const p = await rider('Lakshmi Devi');

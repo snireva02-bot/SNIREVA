@@ -119,8 +119,8 @@ root itself fails with *Unable to resolve "../../App"* because the root is not a
 
 ## 5. Demo mode, APK and over-the-air updates
 
-**Demo data.** `npm run demo:seed` creates 8 demo riders, one per stage (new, documents under review,
-verified, request pending, agreement to sign, active, overdue, returned), plus 12 scooters, payment
+**Demo data.** `npm run demo:seed` creates 9 demo riders, one per stage (new, documents under review,
+verified, request for 2 pending, agreement to sign, active, overdue with a problem being handled, returned, and a fleet of 3), plus 12 scooters, payment
 history, agreements, handovers and service requests. Re-running resets them. `node scripts/seed-demo.mjs --remove`
 deletes them. Riders sign in with `<name>@demo.snireva.in` and `DEMO_PASSWORD`.
 
@@ -159,7 +159,7 @@ do, bump `version` in `app.json` so old installs don't receive incompatible upda
 ## 6. Tests
 
 ```bash
-node scripts/tests/run-all.mjs       # 150 checks across M1–M9 against the real project
+node scripts/tests/run-all.mjs       # 195 checks across M1–M10 against the real project
 node scripts/serve-fn.mjs razorpay-webhook &  node scripts/tests/webhook.mjs   # signed webhook test
 ```
 

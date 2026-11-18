@@ -1,4 +1,4 @@
-import { signIn, accounts, check, summary, admin } from './helpers.mjs';
+import { signIn, accounts, check, summary, admin, ensureActiveRental } from './helpers.mjs';
 
 console.log('M6-M8: push trigger, service requests, reports');
 const c1 = await signIn('customer1');
@@ -17,8 +17,10 @@ const { error: ne } = await c1.from('notifications').insert({ user_id: accounts.
 check('customers cannot create notifications', !!ne);
 
 // M7: service request
-const { data: rental } = await c1.from('rentals').select('id').in('status', ['active', 'overdue']).maybeSingle();
-r = await c1.from('service_requests').insert({ user_id: accounts.customer1.id, rental_id: rental?.id, category: 'brakes', description: 'Rear brake is weak since yesterday' }).select().single();
+const rentalId = await ensureActiveRental('customer1');
+r = await c1.from('service_requests').insert({ user_id: accounts.customer1.id, category: 'brakes', description: 'No scooter chosen here' });
+check('scooter problem without choosing a scooter is rejected', r.error?.message.includes('Choose which scooter'), r.error?.message);
+r = await c1.from('service_requests').insert({ user_id: accounts.customer1.id, rental_id: rentalId, category: 'brakes', description: 'Rear brake is weak since yesterday' }).select().single();
 check('customer creates service request', !r.error, r.error?.message);
 const sr = r.data;
 r = await c1.from('service_requests').update({ status: 'resolved' }).eq('id', sr.id).select();
@@ -27,9 +29,12 @@ r = await c2.from('service_requests').select('id').eq('id', sr.id);
 check('other customer cannot see it', r.data.length === 0);
 r = await staff.from('service_requests').update({ assigned_to: accounts.staff.id }).eq('id', sr.id).select().single();
 check('assigning moves to assigned', r.data?.status === 'assigned', r.error?.message);
-await staff.from('service_requests').update({ status: 'resolved', admin_notes: 'Brake pads replaced.' }).eq('id', sr.id);
+const { data: srow } = await c1.from('service_requests').select('scooter_id').eq('id', sr.id).single();
+const { data: rrow } = await c1.from('rentals').select('scooter_id').eq('id', rentalId).single();
+check('request is linked to the rented scooter id', srow.scooter_id === rrow.scooter_id && !!srow.scooter_id);
+await staff.rpc('service_update', { p_request: sr.id, p_status: 'resolved', p_note: 'Brake pads replaced.' });
 const { data: n } = await c1.from('notifications').select('body').order('created_at', { ascending: false }).limit(1);
-check('status change notifies customer', n[0]?.body.includes('Marked as resolved') && n[0].body.includes('Brake pads'), n[0]?.body);
+check('status change notifies customer', n[0]?.body.includes('Marked as fixed'), n[0]?.body);
 
 // M8: reports
 r = await staff.rpc('dashboard_overview');

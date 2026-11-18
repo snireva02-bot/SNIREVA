@@ -1,4 +1,4 @@
-import { signIn, accounts, check, summary, admin } from './helpers.mjs';
+import { signIn, accounts, check, summary, admin, prepareGateway } from './helpers.mjs';
 
 console.log('M5: payments + due dates + cron');
 const c1 = await signIn('customer1');
@@ -12,11 +12,11 @@ check('active rental from M4', !!rental);
 const due0 = rental.next_due_date;
 
 // ---- gateway payment (as the Edge Function would do it)
-let r = await c1.rpc('prepare_rent_payment', { p_rental: rental.id });
-check('prepare_rent_payment computes amount server-side', !r.error && Number(r.data[0].amount) === 1820, r.error?.message ?? JSON.stringify(r.data));
-const pay = r.data[0];
-const orderId = `order_test_${Date.now()}`;
-await admin.from('payments').update({ razorpay_order_id: orderId }).eq('id', pay.payment_id);
+let g = await prepareGateway(c1, [rental.id]);
+check('prepare_rent_payment computes amount server-side', !g.error && Number(g.prep.total) === 1820, g.error?.message ?? JSON.stringify(g.prep));
+const pay = { payment_id: g.prep.items[0].payment_id };
+const orderId = g.rzp;
+let r;
 
 r = await c1.rpc('apply_gateway_payment', { p_order_id: orderId, p_payment_id: 'pay_x', p_amount_paise: 182000 });
 check('customer cannot mark a payment paid', !!r.error);
@@ -37,16 +37,14 @@ const { data: notes } = await c1.from('notifications').select('title').order('cr
 check('payment + renewal notifications', notes.map((n) => n.title).sort().join('|') === 'Payment received|Rental renewed', JSON.stringify(notes));
 
 // ---- amount mismatch
-r = await c1.rpc('prepare_rent_payment', { p_rental: rental.id });
-const order2 = `order_test2_${Date.now()}`;
-await admin.from('payments').update({ razorpay_order_id: order2 }).eq('id', r.data[0].payment_id);
+g = await prepareGateway(c1, [rental.id]);
+const order2 = g.rzp;
 r = await admin.rpc('apply_gateway_payment', { p_order_id: order2, p_payment_id: `pay_bad_${Date.now()}`, p_amount_paise: 100 });
 check('amount mismatch is rejected', r.data === 'amount_mismatch', r.data);
 
 // ---- failure event
-r = await c1.rpc('prepare_rent_payment', { p_rental: rental.id });
-const order3 = `order_test3_${Date.now()}`;
-await admin.from('payments').update({ razorpay_order_id: order3 }).eq('id', r.data[0].payment_id);
+g = await prepareGateway(c1, [rental.id]);
+const order3 = g.rzp;
 r = await admin.rpc('mark_gateway_failed', { p_order_id: order3, p_payment_id: 'pay_f', p_reason: 'UPI declined' });
 check('payment.failed marks failed', r.data === 'failed');
 
@@ -79,7 +77,7 @@ check('reminder 2 days before due', rem[0]?.title === 'Rent due in 2 days', JSON
 
 // ---- renewal hold
 await staff.rpc('set_renewal_block', { p_rental: rental.id, p_blocked: true, p_reason: 'Damage inspection' });
-r = await c1.rpc('prepare_rent_payment', { p_rental: rental.id });
+r = await c1.rpc('prepare_rent_payment', { p_rentals: [rental.id] });
 check('renewal hold blocks online payment', r.error?.message.includes('Renewal is on hold'), r.error?.message);
 await staff.rpc('set_renewal_block', { p_rental: rental.id, p_blocked: false });
 
@@ -95,7 +93,7 @@ r = await staff.rpc('complete_return', { p_rental: rental.id, p_checklist: { cus
 check('return blocked while outstanding unsettled', r.error?.message.includes('must be settled'), r.error?.message);
 r = await staff.rpc('complete_return', { p_rental: rental.id, p_checklist: { customer_ack: true, scooter_condition: 'Good', damage_notes: '' }, p_scooter_status: 'under_maintenance', p_settlement_note: 'Adjusted from deposit' });
 check('return with settlement note', !r.error && Number(r.data) > 0, r.error?.message);
-const { data: closed } = await c1.from('rentals').select('status, scooter:scooters(status)').eq('id', rental.id).single();
+const { data: closed } = await staff.from('rentals').select('status, scooter:scooters(status)').eq('id', rental.id).single();
 check('rental returned, scooter to maintenance', closed.status === 'returned' && closed.scooter.status === 'under_maintenance', JSON.stringify(closed));
 await admin.from('scooters').update({ status: 'available' }).eq('id', rental.scooter_id);
 

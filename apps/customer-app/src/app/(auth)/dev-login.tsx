@@ -11,11 +11,12 @@ const RIDERS: [string, string, string][] = [
   ['priya', 'Priya Sharma', 'New rider – upload documents'],
   ['arjun', 'Arjun Reddy', 'Documents under review'],
   ['imran', 'Mohammed Imran', 'Verified – request a scooter'],
-  ['kiran', 'Kiran Kumar', 'Scooter request pending'],
+  ['kiran', 'Kiran Kumar', 'Request for 2 scooters pending'],
   ['lakshmi', 'Lakshmi Devi', 'Scooter allocated – sign agreement'],
   ['ravi', 'Ravi Teja', 'Active rental – rent due in 2 days'],
-  ['suresh', 'Suresh Babu', 'Overdue with late fee'],
+  ['suresh', 'Suresh Babu', 'Overdue + battery problem being handled'],
   ['anitha', 'Anitha Rao', 'Past rental – returned'],
+  ['venkat', 'Venkat Fleet Services', 'Fleet of 3 scooters – one payment for all'],
 ];
 
 export default function DemoLogin() {

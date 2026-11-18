@@ -28,6 +28,7 @@ const RIDERS = [
   { key: 'ravi', name: 'Ravi Teja', phone: '+919100000106', platform: 'zepto', stage: 'active' },
   { key: 'suresh', name: 'Suresh Babu', phone: '+919100000107', platform: 'blinkit', stage: 'overdue' },
   { key: 'anitha', name: 'Anitha Rao', phone: '+919100000108', platform: 'swiggy', stage: 'returned' },
+  { key: 'venkat', name: 'Venkat Fleet Services', phone: '+919100000109', platform: 'zepto', stage: 'fleet_3_scooters' },
 ];
 const email = (k) => `${k}@demo.snireva.in`;
 
@@ -38,6 +39,7 @@ async function removeDemo() {
   if (!ids.length) return;
   await q(`
     delete from public.payments where user_id = any($1);
+    delete from public.payment_orders where user_id = any($1);
     delete from public.handover_records where rental_id in (select id from public.rentals where user_id = any($1));
     delete from public.agreements where rental_id in (select id from public.rentals where user_id = any($1));
     delete from public.service_requests where user_id = any($1);
@@ -69,7 +71,11 @@ await q(`
     ('SNR-009','Urban Lite','CH-24B-0009','MT-0009','BT-0009','48V 26Ah Li-ion, ~70 km range','available'),
     ('SNR-010','Urban Lite','CH-24B-0010','MT-0010','BT-0010','48V 26Ah Li-ion, ~70 km range','available'),
     ('SNR-011','Velo Cargo Pro','CH-24C-0011','MT-0011','BT-0011','72V 32Ah Li-ion, ~110 km range','available'),
-    ('SNR-012','Velo Cargo Pro','CH-24C-0012','MT-0012','BT-0012','72V 32Ah Li-ion, ~110 km range','under_maintenance')
+    ('SNR-012','Velo Cargo Pro','CH-24C-0012','MT-0012','BT-0012','72V 32Ah Li-ion, ~110 km range','under_maintenance'),
+    ('SNR-013','Urban Lite','CH-24B-0013','MT-0013','BT-0013','48V 26Ah Li-ion, ~70 km range','available'),
+    ('SNR-014','Urban Lite','CH-24B-0014','MT-0014','BT-0014','48V 26Ah Li-ion, ~70 km range','available'),
+    ('SNR-015','Velo Cargo 2.0','CH-24A-0015','MT-0015','BT-0015','60V 30Ah Li-ion, ~90 km range','available'),
+    ('SNR-016','Velo Cargo 2.0','CH-24A-0016','MT-0016','BT-0016','60V 30Ah Li-ion, ~90 km range','available')
   on conflict (code) do nothing`);
 await q(`update public.scooters set weekly_rent = 2100 where code in ('SNR-011','SNR-012') and weekly_rent is null`);
 await q(`update public.scooters set maintenance_notes = '12 Nov 2026: Rear brake pads worn, waiting for parts' where code = 'SNR-012'`);
@@ -110,11 +116,11 @@ async function approve(id) {
 }
 
 /** Rental that started `daysAgo` days ago, with `weeksPaid` weeks of rent paid (incl. the first week at handover). */
-async function activeRental(id, code, daysAgo, weeksPaid, signer) {
+async function activeRental(id, code, daysAgo, weeksPaid, signer, bookingId = null) {
   const sc = await scooterId(code);
   const start = (await q(`select current_date - $1::int as d`, [daysAgo])).rows[0].d;
-  const b = (await q(`insert into public.booking_requests (user_id, pickup_location_id, status, scooter_id, decided_by, decided_at, created_at)
-                      values ($1,$2,'approved',$3,$4, $5::date - 1, $5::date - 2) returning id`, [id, hub, sc, staff, start])).rows[0].id;
+  const b = bookingId ?? (await q(`insert into public.booking_requests (user_id, pickup_location_id, status, quantity, decided_by, decided_at, created_at)
+                      values ($1,$2,'approved',1,$3, $4::date - 1, $4::date - 2) returning id`, [id, hub, staff, start])).rows[0].id;
   const r = (await q(`insert into public.rentals (user_id, scooter_id, booking_request_id, pickup_location_id, weekly_rent, deposit_amount,
                         status, start_date, next_due_date, created_at)
                       select $1, s.id, $2, $3, coalesce(s.weekly_rent, st.weekly_rent), st.deposit_amount, 'active', $4::date, $4::date + 7 * $5, $4::date - 1
@@ -168,15 +174,15 @@ await notify(ids.imran, "You're verified", 'Your documents are approved. You can
 
 // kiran: approved + pending booking
 await approve(ids.kiran);
-await q(`insert into public.booking_requests (user_id, pickup_location_id, preferred_scooter_id, created_at)
-         values ($1, $2, (select id from public.scooters where code = 'SNR-007'), now() - interval '3 hours')`, [ids.kiran, hub]);
+await q(`insert into public.booking_requests (user_id, pickup_location_id, quantity, preferred_scooter_ids, created_at)
+         values ($1, $2, 2, array[(select id from public.scooters where code = 'SNR-007')], now() - interval '3 hours')`, [ids.kiran, hub]);
 
 // lakshmi: allocated, needs to sign
 await approve(ids.lakshmi);
 {
   const sc = await scooterId('SNR-008');
-  const b = (await q(`insert into public.booking_requests (user_id, pickup_location_id, status, scooter_id, decided_by, decided_at, created_at)
-                      values ($1,$2,'approved',$3,$4, now() - interval '2 hours', now() - interval '1 day') returning id`, [ids.lakshmi, hub, sc, staff])).rows[0].id;
+  const b = (await q(`insert into public.booking_requests (user_id, pickup_location_id, status, quantity, decided_by, decided_at, created_at)
+                      values ($1,$2,'approved',1,$3, now() - interval '2 hours', now() - interval '1 day') returning id`, [ids.lakshmi, hub, staff])).rows[0].id;
   await q(`insert into public.rentals (user_id, scooter_id, booking_request_id, pickup_location_id, weekly_rent, deposit_amount, status)
            select $1, $2, $3, $4, st.weekly_rent, st.deposit_amount, 'pending_agreement' from public.settings st where st.id = 1`, [ids.lakshmi, sc, b, hub]);
   await q(`update public.scooters set status = 'reserved' where id = $1`, [sc]);
@@ -194,19 +200,40 @@ await approve(ids.suresh);
 const sureshRental = await activeRental(ids.suresh, 'SNR-009', 17, 2, 'S. Babu');
 await q(`update public.rentals set status = 'overdue' where id = $1`, [sureshRental]);
 await notify(ids.suresh, 'Rent overdue', 'Your rent was due 3 days ago. Pay now to keep your scooter. Late fees apply.', '/pay', '3 hours');
-await q(`insert into public.service_requests (user_id, rental_id, category, description, created_at)
-         values ($1,$2,'battery','Battery drops from 60% to 10% very fast after 20 km.', now() - interval '5 hours')`, [ids.suresh, sureshRental]);
+{
+  const sr = (await q(`insert into public.service_requests (user_id, rental_id, category, description, created_at)
+         values ($1,$2,'battery','Battery drops from 60% to 10% very fast after 20 km.', now() - interval '5 hours') returning id`, [ids.suresh, sureshRental])).rows[0].id;
+  await q(`update public.service_updates set created_at = now() - interval '5 hours' where request_id = $1`, [sr]);
+  await q(`update public.service_requests set assigned_to = $2, status = 'assigned' where id = $1`, [sr, staff]);
+  await q(`insert into public.service_updates (request_id, author_id, author_kind, body, created_at) values
+           ($1, $2, 'staff', 'Technician Anil will check the battery at Madhapur hub today after 3 pm.', now() - interval '3 hours'),
+           ($1, $2, 'staff', 'Likely a weak cell. Keep a replacement ready.', now() - interval '3 hours'),
+           ($1, $3, 'customer', 'OK, I will come at 4 pm.', now() - interval '2 hours')`, [sr, staff, ids.suresh]);
+  await q(`update public.service_updates set visible_to_customer = false where request_id = $1 and body like 'Likely a weak cell%'`, [sr]);
+}
 
 // anitha: completed rental in the past
 await approve(ids.anitha);
 {
   const rid = await activeRental(ids.anitha, 'SNR-010', 27, 2, 'A. Rao');
+  const sr = (await q(`insert into public.service_requests (user_id, rental_id, category, description, created_at)
+           values ($1,$2,'tyres','Front tyre puncture near Gachibowli.', now() - interval '18 days') returning id`, [ids.anitha, rid])).rows[0].id;
+  await q(`update public.service_requests set assigned_to = $2, status = 'resolved', admin_notes = 'Tube replaced at hub.' where id = $1`, [sr, staff]);
+  await q(`update public.service_requests set status = 'closed' where id = $1`, [sr]);
   await q(`insert into public.handover_records (rental_id, kind, scooter_condition, battery_condition, charger_ok, accessories, customer_ack_at, recorded_by, created_at)
            values ($1,'return','Minor scratches','85%',true,'All returned', now() - interval '13 days', $2, now() - interval '13 days')`, [rid, staff]);
   await q(`update public.rentals set status = 'returned', ended_at = now() - interval '13 days', end_reason = 'returned' where id = $1`, [rid]);
   await q(`update public.scooters set status = 'available' where code = 'SNR-010'`);
-  await q(`insert into public.service_requests (user_id, rental_id, category, description, status, assigned_to, admin_notes, created_at)
-           values ($1,$2,'tyres','Front tyre puncture near Gachibowli.', 'resolved', $3, 'Tube replaced at hub.', now() - interval '18 days')`, [ids.anitha, rid, staff]);
+}
+
+// venkat: fleet operator, one booking for 3 scooters, all active (due in 2 days)
+await approve(ids.venkat);
+{
+  const start = (await q(`select current_date - 12 as d`)).rows[0].d;
+  const b = (await q(`insert into public.booking_requests (user_id, pickup_location_id, status, quantity, decided_by, decided_at, created_at)
+                      values ($1,$2,'approved',3,$3, $4::date - 1, $4::date - 2) returning id`, [ids.venkat, hub, staff, start])).rows[0].id;
+  for (const code of ['SNR-001', 'SNR-002', 'SNR-011']) await activeRental(ids.venkat, code, 12, 2, 'V. Fleet', b);
+  await notify(ids.venkat, '3 scooters allocated', 'SNR-001, SNR-002, SNR-011 reserved for you. Sign your rental agreement in the app.', '/agreement', '13 days');
 }
 
 // priya: brand new, a welcome notification

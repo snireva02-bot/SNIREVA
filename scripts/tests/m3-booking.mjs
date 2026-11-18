@@ -9,16 +9,22 @@ const id1 = accounts.customer1.id;
 // reset: close any open rentals/bookings for customer1, free scooters
 await admin.from('rentals').update({ status: 'terminated' }).eq('user_id', id1).not('status', 'in', '(returned,terminated)');
 await admin.from('booking_requests').update({ status: 'cancelled' }).eq('user_id', id1).eq('status', 'pending');
-await admin.from('scooters').update({ status: 'available' }).in('code', ['SNR-001', 'SNR-002', 'SNR-003']);
+// free test scooters only if no open rental uses them (never touch demo riders' scooters)
+for (const code of ['SNR-001', 'SNR-002']) {
+  const { data: sc } = await admin.from('scooters').select('id').eq('code', code).single();
+  const { count } = await admin.from('rentals').select('id', { count: 'exact', head: true }).eq('scooter_id', sc.id).not('status', 'in', '(returned,terminated)');
+  if (!count) await admin.from('scooters').update({ status: 'available' }).eq('id', sc.id);
+}
 
-const { data: list } = await c1.from('scooters').select('id, code, status');
-check('customer sees only available scooters', list.length > 0 && list.every((s) => s.status === 'available'));
+const { data: fresh } = await c2.from('scooters').select('id, status');
+check('customer with no rentals sees only available scooters', fresh.length > 0 && fresh.every((s) => s.status === 'available'));
+const { data: list } = await c1.from('scooters').select('id, code, status').eq('status', 'available').order('code');
 const { data: hubs } = await c1.from('pickup_locations').select('id');
 
 let r = await c2.rpc('request_scooter', { p_pickup: hubs[0].id });
 check('unapproved customer cannot request', r.error?.message.includes('must be approved'), r.error?.message);
 
-r = await c1.rpc('request_scooter', { p_pickup: hubs[0].id, p_preferred_scooter: list[0].id });
+r = await c1.rpc('request_scooter', { p_pickup: hubs[0].id, p_quantity: 1, p_preferred: [list[0].id] });
 check('approved customer can request', !r.error, r.error?.message);
 const bookingId = r.data;
 r = await c1.rpc('request_scooter', { p_pickup: hubs[0].id });
@@ -31,7 +37,7 @@ const { data: maint } = await staff.from('scooters').select('id').eq('code', 'SN
 r = await staff.rpc('allocate_scooter', { p_booking: bookingId, p_scooter: maint.id });
 check('cannot allocate a scooter under maintenance', r.error?.message.includes('not available'), r.error?.message);
 
-const target = list.find((s) => s.code === 'SNR-001') ?? list[0];
+const target = list[0];
 r = await staff.rpc('allocate_scooter', { p_booking: bookingId, p_scooter: target.id, p_note: 'Collect from Madhapur hub' });
 check('staff allocates scooter', !r.error, r.error?.message);
 const rentalId = r.data;
@@ -48,8 +54,8 @@ check('customer can still see their reserved scooter', seen.length === 1);
 r = await staff.from('scooters').update({ status: 'available' }).eq('id', target.id).select();
 check('cannot free a scooter on an open rental directly', !!r.error, r.error?.message);
 
-r = await c1.rpc('request_scooter', { p_pickup: hubs[0].id });
-check('customer with open rental cannot request again', r.error?.message.includes('already have a scooter'), r.error?.message);
+r = await c1.rpc('request_scooter', { p_pickup: hubs[0].id, p_quantity: 50 });
+check('customer cannot exceed the per-customer scooter limit', r.error?.message.includes('up to'), r.error?.message);
 
 const { data: c2rows } = await c2.from('rentals').select('id');
 check('other customer cannot see the rental', c2rows.length === 0);
